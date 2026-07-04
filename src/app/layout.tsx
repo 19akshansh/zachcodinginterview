@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Nunito_Sans, Raleway } from "next/font/google";
+import { Geist, Geist_Mono, Raleway } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TRPCReactProvider } from "@/trpc/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { envSchem } from "@/config/envSchema";
 
 const raleway = Raleway({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -21,6 +22,13 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "ZACH Coding Interview",
   description: "An AI Powered Coding Interview Platform",
+  openGraph: {
+    title: "ZACH Coding Interview",
+    description: "An AI Powered Coding Interview Platform",
+    url: envSchem.NEXT_PUBLIC_APP_URL,
+    siteName: "ZACH Coding Interview",
+    images: [{ url: envSchem.NEXT_PUBLIC_APP_URL + "/images/logo.svg" }],
+  },
 };
 
 export default function RootLayout({

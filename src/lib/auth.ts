@@ -214,4 +214,13 @@ copy and paste this link into your browser:
       clientSecret: envSchem.GOOGLE_CLIENT_SECRET as string,
     },
   },
+  user: {
+    additionalFields: {
+      role: {
+        type: "string", 
+        defaultValue: "CANDIDATE",
+        input: false,
+      },
+    },
+  },
 });
