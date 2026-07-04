@@ -2,10 +2,11 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "@/lib/db";
 import { transporter } from "./mail";
+import { envSchem } from "@/config/envSchema";
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
-  trustedOrigins: [process.env.NEXT_PUBLIC_APP_URL!],
+  baseURL: envSchem.BETTER_AUTH_URL,
+  trustedOrigins: [envSchem.NEXT_PUBLIC_APP_URL!],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
@@ -15,7 +16,7 @@ export const auth = betterAuth({
     requireEmailVerification: true,
     sendResetPassword: async ({ user, url }) => {
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+        from: envSchem.EMAIL_FROM,
         to: user.email,
         subject: "Reset your password",
         html: `<div
@@ -37,7 +38,7 @@ export const auth = betterAuth({
   >
     <div style="margin-bottom: 32px;">
       <img
-        src="https://${process.env.NEXT_PUBLIC_APP_URL}/mainAssets/logo.svg"
+        src="https://${envSchem.NEXT_PUBLIC_APP_URL}/mainAssets/logo.svg"
         alt="Zach Coding Interview"
         width="80"
         height="80"
@@ -111,7 +112,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
       await transporter.sendMail({
-        from: process.env.EMAIL_FROM,
+        from: envSchem.EMAIL_FROM,
         to: user.email,
         subject: "Verify your email address",
         html: `<div
@@ -134,7 +135,7 @@ font-family: Arial, Helvetica, sans-serif;"
   >
     <div style="margin-bottom: 32px;">
       <img
-        src="https://${process.env.NEXT_PUBLIC_APP_URL}/mainAssets/logo.svg"
+        src="https://${envSchem.NEXT_PUBLIC_APP_URL}/mainAssets/logo.svg"
         alt="Zach Coding Interview"
         width="80"
         height="80"
@@ -205,12 +206,12 @@ copy and paste this link into your browser:
   },
   socialProviders: {
     github: {
-      clientId: process.env.GITHUB_CLIENT_ID as string,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET as string,
+      clientId: envSchem.GITHUB_CLIENT_ID as string,
+      clientSecret: envSchem.GITHUB_CLIENT_SECRET as string,
     },
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: envSchem.GOOGLE_CLIENT_ID as string,
+      clientSecret: envSchem.GOOGLE_CLIENT_SECRET as string,
     },
   },
 });
