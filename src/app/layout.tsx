@@ -4,8 +4,9 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { TRPCReactProvider } from "@/trpc/client";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 
-const raleway = Raleway({subsets:['latin'],variable:'--font-sans'});
+const raleway = Raleway({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,7 +42,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col dark">
         <TooltipProvider>
-          <TRPCReactProvider>{children}</TRPCReactProvider>
+          <TRPCReactProvider>
+            {children} <Toaster />
+          </TRPCReactProvider>
         </TooltipProvider>
       </body>
     </html>
