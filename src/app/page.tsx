@@ -1,23 +1,38 @@
-import { requireAuth } from "@/lib/authUtils";
+import { checkAuth } from "@/lib/authUtils";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
-import { LogoutButton } from "@/features/auth/components/logoutBtn";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/appSidebar";
+import { AppHeader } from "@/components/appHeader";
+import LandingPage from "@/components/landingPage";
 
 const Page = async () => {
-  const auth = await requireAuth();
+  const auth = await checkAuth();
   const queryClient = getQueryClient();
 
-  void queryClient.prefetchQuery(trpc.getUsers.queryOptions());
+  const AuthComp = () => {
+    void queryClient.prefetchQuery(trpc.getUsers.queryOptions());
+
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          {" "}
+          <AppHeader />
+          <div className="p-8 flex flex-col gap-4">
+            <div className="flex justify-between items-center">
+              <h1 className="text-xl font-bold">Hi, {auth?.user?.name}</h1>
+            </div>
+            <p>Welcome to your dashboard.</p>
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  };
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="p-8 flex flex-col gap-4">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-bold">Hi, {auth.user.email}</h1>
-          <LogoutButton />
-        </div>
-        <p>Welcome to your dashboard.</p>
-      </div>
+      {auth ? <AuthComp /> : <LandingPage />}
     </HydrationBoundary>
   );
 };
