@@ -50,7 +50,7 @@ export const requireRecruiter = async () => {
     headers: await headers(),
   });
 
- if (session?.user.role !== "RECRUITER") {
+ if (session?.user.role !== "RECRUITER" && session?.user.role !== "ADMIN") {
    redirect("/");
  }
 
