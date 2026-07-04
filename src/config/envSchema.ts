@@ -12,6 +12,12 @@ const envSchema = z.object({
   EMAIL_USER: z.string().min(1, "EMAIL_USER is required"),
   EMAIL_PASS: z.string().min(1, "EMAIL_PASS is required"),
   EMAIL_FROM: z.string().min(1, "EMAIL_FROM is required"),
+  POLAR_ACCESS_TOKEN: z.string().min(1, "POLAR_ACCESS_TOKEN is required"),
+  POLAR_SERVER: z.enum(["production", "sandbox"]).default("sandbox"),
+  POLAR_PRO_PRODUCT_ID: z
+    .string()
+    .min(1, "POLAR_PRO_PRODUCT_ID (UUID) is required"),
+  POLAR_SUCCESS_URL: z.url("POLAR_SUCCESS_URL must be a valid full URL"),
 });
 
 export const envSchem = envSchema.parse({
@@ -26,4 +32,8 @@ export const envSchem = envSchema.parse({
   EMAIL_USER: process.env.EMAIL_USER,
   EMAIL_PASS: process.env.EMAIL_PASS,
   EMAIL_FROM: process.env.EMAIL_FROM,
+  POLAR_ACCESS_TOKEN: process.env.POLAR_ACCESS_TOKEN,
+  POLAR_SERVER: process.env.POLAR_SERVER,
+  POLAR_PRO_PRODUCT_ID: process.env.POLAR_PRO_PRODUCT_ID,
+  POLAR_SUCCESS_URL: process.env.POLAR_SUCCESS_URL,
 });

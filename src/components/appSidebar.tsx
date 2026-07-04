@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   Briefcase,
+  StarIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,6 +35,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { authClient } from "@/lib/authClient";
+import { useQueryClient } from "@tanstack/react-query";
+import { useHasActivePROSubscription } from "@/hooks/useSubscription";
+import { Button } from "./ui/button";
 
 type UserRole = "CANDIDATE" | "RECRUITER" | "ADMIN";
 
@@ -70,7 +74,10 @@ const navGroups: {
 export const AppSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: session, isPending } = authClient.useSession();
+  const { hasActivePROSubscription, isLoading: isSubLoading } =
+    useHasActivePROSubscription();
 
   if (isPending) {
     return null;
@@ -81,11 +88,51 @@ export const AppSidebar = () => {
   const visibleGroups = navGroups.filter((group) =>
     group.roles.includes(currentRole),
   );
+  const handleUpgrade = async () => {
+    try {
+      toast.info("Generating checkout link...");
+      const { data, error } = await authClient.checkout({
+        slug: "pro",
+      });
+
+      if (error) {
+        toast.error(error.message || "Failed to initiate checkout.");
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Checkout error:", error);
+      toast.error("An unexpected error occurred.");
+    }
+  };
+
+  const handlePortal = async () => {
+    try {
+      const { data, error } = await authClient.customer.portal();
+
+      if (error) {
+        toast.error(error.message || "Could not open billing portal.");
+        return;
+      }
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Portal error:", error);
+      toast.error("Could not open billing portal.");
+    }
+  };
 
   const handleLogout = async () => {
     await authClient.signOut({
       fetchOptions: {
         onSuccess: () => {
+          queryClient.clear();
+
           toast.success("Logged out successfully");
           router.push("/signin");
           router.refresh();
@@ -194,10 +241,42 @@ export const AppSidebar = () => {
 
       <SidebarFooter className="p-2">
         <SidebarMenu>
+          {!hasActivePROSubscription && !isSubLoading && (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                render={
+                  <Button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleUpgrade();
+                    }}
+                  />
+                }
+                tooltip="Upgrade to PRO"
+                className="text-amber-400 hover:bg-amber-400/10 hover:text-amber-300 transition-colors group-data-[state=collapsed]:px-2"
+              >
+                <StarIcon className="size-4 shrink-0 fill-amber-400/20" />
+                <span className="font-semibold text-sm group-data-[state=collapsed]:hidden">
+                  Upgrade to PRO
+                </span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
-              render={<Link href="/billing" />}
-              tooltip="Plans & Billing"
+              render={
+                <Button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handlePortal();
+                  }}
+                />
+              }
+              tooltip="Billing Portal"
               className="text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-start"
             >
               <CreditCardIcon className="size-4 shrink-0 opacity-70" />
@@ -219,7 +298,7 @@ export const AppSidebar = () => {
                 <UserIcon className="size-5 shrink-0" />
               </div>
               <div className="flex flex-1 flex-col gap-0.5 ml-2 text-left group-data-[state=collapsed]:hidden">
-                <span className="text-sm font-semibold text-sidebar-foreground/90">
+                <span className="text-sm font-semibold text-sidebar-foreground/90 truncate w-24">
                   {session?.user?.name ?? "User"}
                 </span>
                 <span className="text-[11px] text-muted-foreground group-hover:text-sidebar-primary transition-colors capitalize">
