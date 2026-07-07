@@ -1,7 +1,7 @@
-import { baseProcedure, createTRPCRouter } from "../init";
+import { createTRPCRouter, protectedProcedure } from "../init";
 import prisma from "@/lib/db";
 export const appRouter = createTRPCRouter({
-  getUsers: baseProcedure.query(async () => {
+  getUsers: protectedProcedure.query(async ({ ctx }) => {
     return prisma.user.findMany();
   }),
 });

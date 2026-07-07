@@ -7,18 +7,18 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Dashboard - ZACH Coding Interview",
-    description: "An AI Powered Coding Interview Platform",
-    openGraph: {
-      title: "ZACH Coding Interview",
-      description: "Dashboard - An AI Powered Coding Interview Platform",
-      url: envSchem.NEXT_PUBLIC_APP_URL,
-      siteName: "ZACH Coding Interview",
-      images: [{ url: envSchem.NEXT_PUBLIC_APP_URL + "/images/logo.svg" }],
-    },
+  description: "An AI Powered Coding Interview Platform",
+  openGraph: {
+    title: "ZACH Coding Interview",
+    description: "Dashboard - An AI Powered Coding Interview Platform",
+    url: envSchem.NEXT_PUBLIC_APP_URL,
+    siteName: "ZACH Coding Interview",
+    images: [{ url: envSchem.NEXT_PUBLIC_APP_URL + "/images/logo.svg" }],
+  },
 };
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
-  const auth = requireAuth();
+const Layout = async ({ children }: { children: React.ReactNode }) => {
+  const auth = await requireAuth();
 
   return (
     <SidebarProvider>

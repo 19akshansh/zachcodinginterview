@@ -38,9 +38,9 @@ export const requireAdmin = async () => {
     headers: await headers(),
   });
 
- if (session?.user.role !== "ADMIN") {
-   redirect("/");
- }
+  if (session?.user.role !== "ADMIN") {
+    redirect("/");
+  }
 
   return session;
 };
@@ -50,9 +50,9 @@ export const requireRecruiter = async () => {
     headers: await headers(),
   });
 
- if (session?.user.role !== "RECRUITER" && session?.user.role !== "ADMIN") {
-   redirect("/");
- }
+  if (session?.user.role !== "RECRUITER" && session?.user.role !== "ADMIN") {
+    redirect("/");
+  }
 
   return session;
 };

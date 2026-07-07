@@ -2,7 +2,7 @@ import { AppHeader } from "@/components/appHeader";
 import { AppSidebar } from "@/components/appSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { envSchem } from "@/config/envSchema";
-import { requireAuth } from "@/lib/authUtils";
+import { requireRecruiter } from "@/lib/authUtils";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     },
 };
 
-const Layout = ({ children }: { children: React.ReactNode }) => {
-  const auth = requireAuth();
+const Layout = async ({ children }: { children: React.ReactNode }) => {
+  const auth = await requireRecruiter();
 
   return (
     <SidebarProvider>

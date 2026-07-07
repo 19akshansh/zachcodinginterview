@@ -88,6 +88,15 @@ export const AppSidebar = () => {
   const visibleGroups = navGroups.filter((group) =>
     group.roles.includes(currentRole),
   );
+  const initials = session?.user?.name
+    ? session?.user?.name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "G";
+
   const handleUpgrade = async () => {
     try {
       toast.info("Generating checkout link...");
@@ -181,7 +190,7 @@ export const AppSidebar = () => {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                render={<Link href="/urls/new" />}
+                render={<Link href="/interviews/new" />}
                 className="h-11 w-full bg-primary font-semibold text-primary-foreground transition-all hover:bg-primary/90 hover:text-primary-foreground hover:shadow-[0_0_15px_var(--color-primary)]/40 active:scale-[0.98] group-data-[state=collapsed]:px-2 group-data-[state=collapsed]:justify-start"
               >
                 <PlusCircleIcon className="size-5 shrink-0 fill-primary-foreground/20" />
@@ -290,9 +299,9 @@ export const AppSidebar = () => {
 
           <SidebarMenuItem>
             <SidebarMenuButton
+              render={<div />}
               size="lg"
               className="group h-14 rounded-xl bg-sidebar-accent/40 p-2 border border-sidebar-border transition-all hover:bg-sidebar-accent/70 hover:border-sidebar-ring/40 group-data-[state=collapsed]:border-none group-data-[state=collapsed]:bg-transparent group-data-[state=collapsed]:px-1"
-              onClick={handleLogout}
             >
               <div className="flex aspect-square size-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sidebar-primary/20 to-sidebar-primary/40 text-sidebar-primary ring-1 ring-sidebar-primary/20">
                 <UserIcon className="size-5 shrink-0" />
@@ -308,7 +317,14 @@ export const AppSidebar = () => {
                   Sign out
                 </span>
               </div>
-              <LogOutIcon className="size-4 text-muted-foreground/50 group-hover:text-sidebar-foreground transition-colors group-data-[state=collapsed]:hidden" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                aria-label="Sign out"
+                className="group-data-[state=collapsed]:hidden"
+              >
+                <LogOutIcon className="size-4 text-muted-foreground/50 group-hover:text-sidebar-foreground transition-colors" />
+              </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
