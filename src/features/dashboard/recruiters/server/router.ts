@@ -49,7 +49,7 @@ export async function sendRecruiterInviteEmail(params: {
   >
     <div style="margin-bottom: 32px;">
       <img
-        src="https://${appUrl}/mainAssets/logo.svg"
+        src="${appUrl}/mainAssets/logo.svg"
         alt="Zach Coding Interview"
         width="80"
         height="80"
@@ -136,7 +136,6 @@ export async function sendRecruiterInviteEmail(params: {
 </div>`,
   });
 }
- 
 
 export const recruitersRouter = createTRPCRouter({
   inviteCandidate: protectedProcedure
@@ -234,6 +233,15 @@ export const recruitersRouter = createTRPCRouter({
         status,
       };
 
+      const interviewSelect = {
+        status: true,
+        report: {
+          select: {
+            overallScore: true,
+          },
+        },
+      } satisfies Prisma.InterviewSelect;
+
       const [items, totalCount] = await Promise.all([
         prisma.recruiterInvite.findMany({
           where,
@@ -245,13 +253,22 @@ export const recruitersRouter = createTRPCRouter({
               select: {
                 name: true,
                 image: true,
-                interviews: {
-                  where: { assignedByRecruiterId: ctx.auth.user.id },
-                  select: {
-                    status: true,
-                    report: { select: { overallScore: true } },
-                  },
-                },
+                interviews: isAdmin
+                  ? {
+                      select: interviewSelect,
+                    }
+                  : {
+                      where: {
+                        assignedByRecruiterId: ctx.auth.user.id,
+                      },
+                      select: interviewSelect,
+                    },
+              },
+            },
+            recruiter: {
+              select: {
+                name: true,
+                image: true,
               },
             },
           },

@@ -7,26 +7,20 @@ import { PAGINATION } from "@/config/constants";
 import { UserRole, Theme, ProfileVisibility } from "@/config/enums";
 
 export const usersRouter = createTRPCRouter({
-  getMe: protectedProcedure
-    .input(
-      z.object({
-        id: z.string(),
-      }),
-    )
-    .query(async ({ ctx }) => {
-      const user = await prisma.user.findUnique({
-        where: { id: ctx.auth.user.id },
-        include: {
-          settings: true,
-        },
-      });
+  getMe: protectedProcedure.query(async ({ ctx }) => {
+    const user = await prisma.user.findUnique({
+      where: { id: ctx.auth.user.id },
+      include: {
+        settings: true,
+      },
+    });
 
-      if (!user) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-      }
+    if (!user) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    }
 
-      return user;
-    }),
+    return user;
+  }),
   updateProfile: protectedProcedure
     .input(
       z.object({

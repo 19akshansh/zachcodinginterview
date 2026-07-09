@@ -111,7 +111,18 @@ export const interviewsRouter = createTRPCRouter({
         where: { id: input.id },
         include: {
           question: {
-            include: { testCases: true },
+            include: {
+              testCases: {
+                where: {
+                  visibility: "PUBLIC",
+                },
+                select: {
+                  id: true,
+                  input: true,
+                  expectedOutput: true,
+                },
+              },
+            },
           },
           submission: true,
           report: true,

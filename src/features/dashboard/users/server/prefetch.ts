@@ -7,6 +7,6 @@ export const prefetchUsers = (params: GetManyInput) => {
   return prefetch(trpc.users.getMany.queryOptions(params));
 };
 
-export const prefetchUsersMe = (id: string) => {
-  return prefetch(trpc.users.getMe.queryOptions({ id }));
+export const prefetchUsersMe = () => {
+  return prefetch(trpc.users.getMe.queryOptions());
 };

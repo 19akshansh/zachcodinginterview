@@ -5,14 +5,17 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/appSidebar";
 import { AppHeader } from "@/components/appHeader";
 import LandingPage from "@/components/landingPage";
+import { prefetchUsersMe } from "@/features/dashboard/users/server/prefetch";
 
 const Page = async () => {
   const auth = await checkAuth();
   const queryClient = getQueryClient();
 
-  const AuthComp = () => {
-    void queryClient.prefetchQuery(trpc.getUsers.queryOptions());
+  if (auth) {
+    await prefetchUsersMe();
+  }
 
+  const AuthComp = () => {
     return (
       <SidebarProvider>
         <AppSidebar />

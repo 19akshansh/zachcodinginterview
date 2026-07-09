@@ -117,7 +117,7 @@ model User {
   bio              String?
   githubUrl        String?
   linkedinUrl      String?
-  skills           String[]
+  skills           String[] @default([])
   resumeUrl        String?
   resumeParsedData Json? 
 

@@ -84,7 +84,14 @@ export const questionsRouter = createTRPCRouter({
         where: { id: input.id },
         include: {
           testCases: {
-            where: { visibility: "PUBLIC" },
+            where: {
+              visibility: "PUBLIC",
+            },
+            select: {
+              id: true,
+              input: true,
+              expectedOutput: true,
+            },
           },
         },
       });
