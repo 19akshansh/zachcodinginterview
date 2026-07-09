@@ -18,6 +18,92 @@ enum UserRole {
   ADMIN
 }
 
+enum Theme {
+  LIGHT
+  DARK
+  SYSTEM
+}
+
+enum ProfileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum InterviewType {
+  CODING
+  BEHAVIORAL
+  SYSTEM_DESIGN
+  RESUME_BASED
+  DOMAIN_SPECIFIC
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SeniorityLevel {
+  ENTRY
+  JUNIOR
+  INTERMEDIATE
+  SENIOR
+  STAFF
+  PRINCIPAL
+}
+
+enum CompanyTier {
+  STARTUP
+  MID_MARKET
+  FAANG
+}
+
+enum ProgrammingLanguage {
+  PYTHON
+  JAVA
+  JAVASCRIPT
+  TYPESCRIPT
+  CPP
+  GO
+  RUST
+}
+
+enum TestCaseVisibility {
+  PUBLIC
+  HIDDEN
+  CUSTOM
+}
+
+enum SubmissionResult {
+  PASSED
+  FAILED
+  PARTIAL
+  ERROR
+  TIMEOUT
+}
+
+enum Verdict {
+  STRONG_HIRE
+  HIRE
+  LEAN_HIRE
+  NO_HIRE
+  STRONG_NO_HIRE
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  COMPLETED
+}
+
 model User {
   id            String    @id
   name          String
@@ -27,9 +113,27 @@ model User {
   role          UserRole  @default(CANDIDATE)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
-  sessions      Session[]
-  accounts      Account[]
 
+  bio              String?
+  githubUrl        String?
+  linkedinUrl      String?
+  skills           String[]
+  resumeUrl        String?
+  resumeParsedData Json? 
+
+  banned       Boolean   @default(false)
+  bannedReason String?
+  bannedAt     DateTime?
+
+  sessions Session[]
+  accounts Account[]
+  settings Settings?
+
+  interviews         Interview[] @relation("CandidateInterviews")
+  assignedInterviews Interview[] @relation("RecruiterAssignedInterviews")
+
+  sentInvites     RecruiterInvite[] @relation("SentInvites")
+  receivedInvites RecruiterInvite[] @relation("ReceivedInvites")
 
   @@unique([email])
   @@map("user")
@@ -81,4 +185,140 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Settings {
+  id                 String            @id @default(cuid())
+  userId             String            @unique
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme              Theme             @default(SYSTEM)
+  language           String            @default("en")
+  emailNotifications Boolean           @default(true)
+  pushNotifications  Boolean           @default(true)
+  profileVisibility  ProfileVisibility @default(PRIVATE)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  @@map("settings")
+}
+
+model Question {
+  id             String          @id @default(cuid())
+  type           InterviewType
+  title          String
+  prompt         String
+  difficulty     Difficulty
+  seniorityLevel SeniorityLevel?
+  companyTier    CompanyTier?
+  topics         String[]
+  createdAt      DateTime        @default(now())
+
+  interviews Interview[]
+  testCases  TestCase[]
+
+  @@index([type])
+  @@index([difficulty])
+  @@map("question")
+}
+
+model TestCase {
+  id             String             @id @default(cuid())
+  questionId     String
+  question       Question           @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  input          String
+  expectedOutput String
+  visibility     TestCaseVisibility @default(PUBLIC)
+  createdAt      DateTime           @default(now())
+
+  @@index([questionId])
+  @@map("test_case")
+}
+
+model Interview {
+  id             String          @id @default(cuid())
+  type           InterviewType
+  status         InterviewStatus @default(SCHEDULED)
+  difficulty     Difficulty
+  seniorityLevel SeniorityLevel
+  companyTier    CompanyTier?
+  language       ProgrammingLanguage?
+
+  candidateId String
+  candidate   User    @relation("CandidateInterviews", fields: [candidateId], references: [id], onDelete: Cascade)
+
+  assignedByRecruiterId String?
+  assignedByRecruiter   User?   @relation("RecruiterAssignedInterviews", fields: [assignedByRecruiterId], references: [id], onDelete: SetNull)
+
+  questionId String?
+  question   Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+
+  startedAt DateTime?
+  endedAt   DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  submission Submission?
+  report     Report?
+
+  @@index([candidateId])
+  @@index([assignedByRecruiterId])
+  @@index([status])
+  @@map("interview")
+}
+
+model Submission {
+  id          String    @id @default(cuid())
+  interviewId String    @unique
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  code        String
+  language    ProgrammingLanguage
+
+  result          SubmissionResult?
+  passedTestCases Int?
+  totalTestCases  Int?
+  executionTimeMs Int?
+  memoryUsedKb    Int?
+
+  createdAt DateTime @default(now())
+
+  @@map("submission")
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  interviewId String    @unique
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  overallScore   Int
+  communication  Int?
+  problemSolving Int?
+  codeQuality    Int?
+  optimization   Int?
+  cleanliness    Int?
+  confidence     Int?
+  timeComplexity String?
+  verdict        Verdict?
+  suggestions    String[]
+  topicScores    Json? 
+  pdfUrl         String? 
+
+  createdAt DateTime @default(now())
+
+  @@map("report")
+}
+
+model RecruiterInvite {
+  id             String       @id @default(cuid())
+  recruiterId    String
+  recruiter      User         @relation("SentInvites", fields: [recruiterId], references: [id], onDelete: Cascade)
+  candidateEmail String
+  candidateId    String?
+  candidate      User?        @relation("ReceivedInvites", fields: [candidateId], references: [id], onDelete: SetNull)
+  status         InviteStatus @default(PENDING)
+  createdAt      DateTime     @default(now())
+  respondedAt    DateTime?
+
+  @@index([recruiterId])
+  @@index([candidateEmail])
+  @@map("recruiter_invite")
 }

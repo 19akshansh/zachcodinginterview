@@ -1,9 +1,21 @@
 import { createTRPCRouter, protectedProcedure } from "../init";
 import prisma from "@/lib/db";
+import { interviewsRouter } from "@/features/dashboard/interviews/server/router";
+import { questionsRouter } from "@/features/dashboard/questions/server/router";
+import { submissionsRouter } from "@/features/dashboard/submissions/server/router";
+import { reportsRouter } from "@/features/dashboard/reports/server/router";
+import { usersRouter } from "@/features/dashboard/users/server/router";
+import { recruitersRouter } from "@/features/dashboard/recruiters/server/router";
 export const appRouter = createTRPCRouter({
   getUsers: protectedProcedure.query(async ({ ctx }) => {
     return prisma.user.findMany();
   }),
+  interviews: interviewsRouter,
+  questions: questionsRouter,
+  submissions: submissionsRouter,
+  reports: reportsRouter,
+  users: usersRouter,
+  recruiters: recruitersRouter
 });
 // export type definition of API
 export type AppRouter = typeof appRouter;

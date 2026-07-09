@@ -1,27 +1,51 @@
 import "server-only"; // <-- ensure this file cannot be imported from the client
-import { createTRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import { createTRPCClient, httpLink } from "@trpc/client";
+import {
+  createTRPCOptionsProxy,
+  TRPCQueryOptions,
+} from "@trpc/tanstack-react-query";
+import { headers } from "next/headers";
 import { cache } from "react";
 import { createTRPCContext } from "./init";
 import { makeQueryClient } from "./query-client";
 import { appRouter } from "./routers/_app";
-import type { AppRouter } from "./routers/_app";
-// IMPORTANT: Create a stable getter for the query client that
-//            will return the same client during the same request.
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
+
 export const getQueryClient = cache(makeQueryClient);
+
+const getContext = cache(async () => {
+  const heads = new Headers(await headers());
+  heads.set("x-trpc-source", "rsc");
+  return createTRPCContext({
+    headers: heads,
+  });
+});
+
 export const trpc = createTRPCOptionsProxy({
-  ctx: createTRPCContext,
+  ctx: getContext,
   router: appRouter,
   queryClient: getQueryClient,
 });
-// If your router is on a separate server, pass a client:
-createTRPCOptionsProxy<AppRouter>({
-  client: createTRPCClient<AppRouter>({
-    links: [httpLink({ url: "..." })],
-  }),
-  queryClient: getQueryClient,
-});
-export const caller = cache(async () => {
-  const ctx = await createTRPCContext();
-  return appRouter.createCaller(ctx);
-});
+
+export async function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
+  queryOptions: T,
+) {
+  const queryClient = getQueryClient();
+  if (queryOptions.queryKey[1]?.type === "infinite") {
+    return queryClient.prefetchInfiniteQuery(queryOptions as any);
+  } else {
+    return queryClient.prefetchQuery(queryOptions);
+  }
+}
+
+export function HydrateClient(props: { children: React.ReactNode }) {
+  const queryClient = getQueryClient();
+  return (
+    <HydrationBoundary
+      state={dehydrate(queryClient, {
+        shouldDehydrateQuery: (query) => query.state.status === "success",
+      })}
+    >
+      {props.children}
+    </HydrationBoundary>
+  );
+}
