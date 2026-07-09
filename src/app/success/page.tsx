@@ -8,9 +8,9 @@ export default function Page() {
       <div className="max-w-md w-full space-y-8 text-center animate-in fade-in zoom-in duration-500">
         <div className="flex justify-center">
           <div className="relative">
-            <div className="absolute -inset-1 rounded-full bg-blue-500 blur opacity-20 animate-pulse"></div>
+            <div className="absolute -inset-1 rounded-full bg-primary/80 blur opacity-20 animate-pulse"></div>
             <div className="relative rounded-full bg-black border border-white/10 p-4 shadow-2xl">
-              <CheckCircle2 className="w-12 h-12 text-blue-500" />
+              <CheckCircle2 className="w-12 h-12 text-primary/80" />
             </div>
           </div>
         </div>
@@ -19,21 +19,22 @@ export default function Page() {
           <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl text-white">
             You're all set!
           </h1>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary/70 text-xs font-medium mb-4">
             <Sparkles className="w-3 h-3" />
             Beta Access Granted
           </div>
           <p className="text-muted-foreground text-sm sm:text-base max-w-[350px] mx-auto leading-relaxed">
             Payments are coming soon. You can use all PRO features for free
-            during our beta—no money will be deducted from your account.
+            during our beta - no money will be deducted from your account.
           </p>
         </div>
 
         <div className="pt-6">
           <Button
             render={<Link href="/" prefetch />}
+            nativeButton={false}
             size="lg"
-            className="w-full h-12 text-base bg-blue-600 hover:bg-blue-500 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+            className="w-full h-12 text-base bg-primary hover:bg-primary/80 transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
           >
             Enter Zach Coding Interview <ArrowRight className="w-4 h-4" />
           </Button>

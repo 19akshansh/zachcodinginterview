@@ -11,7 +11,7 @@ export const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           className="flex items-center gap-2 self-center font-medium"
         >
           <Image
-            src="/mainAssets/logoDark.svg"
+            src="/mainAssets/logoFull.svg"
             alt="Zach Coding Interview"
             width={300}
             height={300}

@@ -313,9 +313,6 @@ export const AppSidebar = () => {
                 <span className="text-[11px] text-muted-foreground group-hover:text-sidebar-primary transition-colors capitalize">
                   {session?.user?.role ?? "CANDIDATE"}
                 </span>
-                <span className="text-[11px] text-muted-foreground group-hover:text-sidebar-primary transition-colors">
-                  Sign out
-                </span>
               </div>
               <button
                 type="button"
@@ -323,7 +320,7 @@ export const AppSidebar = () => {
                 aria-label="Sign out"
                 className="group-data-[state=collapsed]:hidden"
               >
-                <LogOutIcon className="size-4 text-muted-foreground/50 group-hover:text-sidebar-foreground transition-colors" />
+                <LogOutIcon className="size-4 text-muted-foreground/50 hover:text-destructive group-hover:text-sidebar-foreground transition-colors" />
               </button>
             </SidebarMenuButton>
           </SidebarMenuItem>
