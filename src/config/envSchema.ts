@@ -18,6 +18,11 @@ const envSchema = z.object({
     .string()
     .min(1, "POLAR_PRO_PRODUCT_ID (UUID) is required"),
   POLAR_SUCCESS_URL: z.url("POLAR_SUCCESS_URL must be a valid full URL"),
+  CODESERVER_API_URL: z.url(
+    "CODESERVER_API_URL is required (base URL of the zachcodinginterview_codeserver instance, no trailing slash)",
+  ),
+  CODESERVER_APIKEY: z.string().min(1, "CODESERVER_APIKEY is required"),
+  CODESERVER_TIMEOUT_MS: z.coerce.number().positive().default(15000),
 });
 
 export const envSchem = envSchema.parse({
@@ -36,4 +41,7 @@ export const envSchem = envSchema.parse({
   POLAR_SERVER: process.env.POLAR_SERVER,
   POLAR_PRO_PRODUCT_ID: process.env.POLAR_PRO_PRODUCT_ID,
   POLAR_SUCCESS_URL: process.env.POLAR_SUCCESS_URL,
+  CODESERVER_API_URL: process.env.CODESERVER_API_URL,
+  CODESERVER_APIKEY: process.env.CODESERVER_APIKEY,
+  CODESERVER_TIMEOUT_MS: process.env.CODESERVER_TIMEOUT_MS,
 });

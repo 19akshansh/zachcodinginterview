@@ -5,7 +5,7 @@ import superjson from "superjson";
 import { getSubscriptionStatus } from "@/lib/subscriptions";
 
 export const createTRPCContext = cache(async (opts: { headers: Headers }) => {
-  let session = await auth.api.getSession({
+  const session = await auth.api.getSession({
     headers: opts.headers,
   });
 
@@ -14,10 +14,7 @@ export const createTRPCContext = cache(async (opts: { headers: Headers }) => {
     headers: opts.headers,
   };
 });
-// Avoid exporting the entire t-object
-// since it's not very descriptive.
-// For instance, the use of a t variable
-// is common in i18n libraries.
+
 const t = initTRPC
   .context<Awaited<ReturnType<typeof createTRPCContext>>>()
   .create({
@@ -26,7 +23,7 @@ const t = initTRPC
      */
     transformer: superjson,
   });
-// Base router and procedure helpers
+
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
@@ -57,6 +54,30 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
+  if (ctx.auth.user.role !== "ADMIN") {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Admin access required.",
+    });
+  }
+
+  return next({ ctx });
+});
+
+export const recruiterProcedure = protectedProcedure.use(
+  async ({ ctx, next }) => {
+    if (ctx.auth.user.role !== "RECRUITER" && ctx.auth.user.role !== "ADMIN") {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Recruiter access required.",
+      });
+    }
+
+    return next({ ctx });
+  },
+);
 
 export const proProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   const subscriptionStatus = await getSubscriptionStatus(ctx.auth.user.id);
