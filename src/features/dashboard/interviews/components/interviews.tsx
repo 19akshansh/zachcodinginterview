@@ -133,7 +133,9 @@ export const InterviewsEmpty = () => {
 
 export const InterviewItem = ({ data }: { data: any }) => {
   const removeInterview = useRemoveInterview();
-  const isCoding = data.question?.type === "CODING";
+  const firstQuestion = data.questions?.[0]?.question;
+  const isCoding = firstQuestion?.type === "CODING" || data.type === "CODING";
+  const questionCount = data.questions?.length ?? 0;
 
   const handleRemove = () => {
     removeInterview.mutate({ id: data.id });
@@ -179,7 +181,9 @@ export const InterviewItem = ({ data }: { data: any }) => {
   return (
     <EntityItem
       href={`/interviews/${data.id}`}
-      title={data.question?.title || "Behavioral + Coding Session"}
+      title={
+        data.title || firstQuestion?.title || "Behavioral + Coding Session"
+      }
       subtitle={
         <div className="flex flex-col gap-1.5 mt-1.5">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -188,6 +192,14 @@ export const InterviewItem = ({ data }: { data: any }) => {
             </Badge>
             <span>&bull;</span>
             <span className="font-medium">{data.seniorityLevel}</span>
+            {questionCount > 0 && (
+              <>
+                <span>&bull;</span>
+                <span>
+                  {questionCount} question{questionCount === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground/50">

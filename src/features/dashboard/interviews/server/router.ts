@@ -22,10 +22,16 @@ export const interviewsRouter = createTRPCRouter({
   create: proProcedure
     .input(
       z.object({
+        title: z
+          .string()
+          .trim()
+          .max(80, "Keep the name under 80 characters")
+          .optional(),
         type: z.enum(InterviewType),
         difficulty: z.enum(Difficulty),
         seniorityLevel: z.enum(SeniorityLevel),
         language: z.enum(ProgrammingLanguage).optional(),
+        numQuestions: z.number().int().min(1).max(6).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -43,56 +49,74 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      let questionId: string | undefined;
-      let behavioralQuestionId: string | undefined;
+      const numQuestions = Math.min(
+        input.numQuestions,
+        ctx.limits.maxQuestions,
+      );
 
-      if (input.type === "CODING") {
-        const matchingQuestion = await prisma.question.findFirst({
+      const picks: { type: InterviewType; count: number }[] =
+        input.type === InterviewType.CODING
+          ? [
+              { type: InterviewType.CODING, count: numQuestions },
+              { type: InterviewType.BEHAVIORAL, count: 1 },
+            ]
+          : [{ type: input.type, count: numQuestions }];
+
+      const questionIds: string[] = [];
+
+      for (const pick of picks) {
+        const matching = await prisma.question.findMany({
           where: {
-            type: input.type,
-            difficulty: input.difficulty,
+            type: pick.type,
+            ...(pick.type === input.type
+              ? { difficulty: input.difficulty }
+              : {}),
           },
+          take: pick.count * 3,
         });
 
-        if (!matchingQuestion) {
+        if (matching.length === 0) {
+          if (pick.type === "BEHAVIORAL") continue;
           throw new TRPCError({
             code: "NOT_FOUND",
             message:
-              "No coding questions are available for this difficulty yet. Please try a different difficulty.",
+              "No matching questions are available yet. Please try a different difficulty.",
           });
         }
 
-        questionId = matchingQuestion.id;
-
-        const behavioralQuestion = await prisma.question.findFirst({
-          where: {
-            type: "BEHAVIORAL",
-            seniorityLevel: input.seniorityLevel,
-          },
-        });
-
-        behavioralQuestionId =
-          behavioralQuestion?.id ??
-          (
-            await prisma.question.findFirst({
-              where: { type: "BEHAVIORAL" },
-            })
-          )?.id;
+        const shuffled = matching.sort(() => Math.random() - 0.5);
+        for (const q of shuffled.slice(0, pick.count)) {
+          questionIds.push(q.id);
+        }
       }
 
-      return await prisma.interview.create({
+      if (questionIds.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "No questions are available for this configuration yet.",
+        });
+      }
+
+      const interview = await prisma.interview.create({
         data: {
+          title: input.title || undefined,
           type: input.type,
           difficulty: input.difficulty,
           seniorityLevel: input.seniorityLevel,
           language: input.language,
           candidateId: userId,
           status: "SCHEDULED",
-          questionId,
-          behavioralQuestionId,
           timeLimitMinutes: ctx.limits.interviewLimitMinutes,
+          questions: {
+            create: questionIds.map((questionId, order) => ({
+              questionId,
+              order,
+            })),
+          },
         },
       });
+
+      return interview;
     }),
   start: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -129,22 +153,19 @@ export const interviewsRouter = createTRPCRouter({
       const interview = await prisma.interview.findUnique({
         where: { id: input.id },
         include: {
-          question: {
+          questions: {
+            orderBy: { order: "asc" },
             include: {
-              testCases: {
-                where: {
-                  visibility: "PUBLIC",
-                },
-                select: {
-                  id: true,
-                  input: true,
-                  expectedOutput: true,
+              question: {
+                include: {
+                  testCases: {
+                    where: { visibility: "PUBLIC" },
+                    select: { id: true, input: true, expectedOutput: true },
+                  },
                 },
               },
             },
           },
-          behavioralQuestion: true,
-          submission: true,
           report: true,
           candidate: {
             select: { name: true, image: true, email: true },
@@ -204,7 +225,20 @@ export const interviewsRouter = createTRPCRouter({
         ...roleFilter,
         ...(status ? { status } : {}),
         ...(search
-          ? { question: { title: { contains: search, mode: "insensitive" } } }
+          ? {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                {
+                  questions: {
+                    some: {
+                      question: {
+                        title: { contains: search, mode: "insensitive" },
+                      },
+                    },
+                  },
+                },
+              ],
+            }
           : {}),
       };
 
@@ -215,8 +249,13 @@ export const interviewsRouter = createTRPCRouter({
           take: pageSize,
           orderBy: { createdAt: "desc" },
           include: {
-            question: {
-              select: { title: true, difficulty: true, type: true },
+            questions: {
+              orderBy: { order: "asc" },
+              select: {
+                question: {
+                  select: { title: true, difficulty: true, type: true },
+                },
+              },
             },
             report: {
               select: { overallScore: true, verdict: true },
@@ -335,7 +374,9 @@ export const interviewsRouter = createTRPCRouter({
         candidateId: ctx.auth.user.id,
         status: "SCHEDULED",
       },
-      include: { question: true },
+      include: {
+        questions: { orderBy: { order: "asc" }, include: { question: true } },
+      },
       orderBy: { createdAt: "asc" },
       take: 5,
     });

@@ -12,22 +12,35 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useCreateInterview } from "../hooks/useInterviews";
 import { useUpgradeModal } from "@/hooks/useUpgradeModal";
-import {
-  Loader2,
-  PlayCircle,
-} from "lucide-react";
+import { Loader2, PlayCircle, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { Difficulty, InterviewType, ProgrammingLanguage, SeniorityLevel } from "@/config/enums";
-import { difficultyOptions, interviewTypeOptions, languageOptions, seniorityOptions } from "../types/typeOptions";
+import {
+  Difficulty,
+  InterviewType,
+  ProgrammingLanguage,
+  SeniorityLevel,
+} from "@/config/enums";
+import {
+  difficultyOptions,
+  interviewTypeOptions,
+  languageOptions,
+  seniorityOptions,
+} from "../types/typeOptions";
+import { LIMITS } from "@/config/constants";
+
+const MAX_QUESTIONS = LIMITS.PRO_MAX_QUESTIONS;
 
 const interviewSchema = z.object({
+  title: z.string().trim().max(80, "Keep it under 80 characters").optional(),
   type: z.enum(InterviewType),
   difficulty: z.enum(Difficulty),
   seniorityLevel: z.enum(SeniorityLevel),
   language: z.enum(ProgrammingLanguage).optional(),
+  numQuestions: z.number().int().min(1).max(MAX_QUESTIONS),
 });
 
 export const InterviewForm = () => {
@@ -38,10 +51,12 @@ export const InterviewForm = () => {
   const form = useForm<z.infer<typeof interviewSchema>>({
     resolver: zodResolver(interviewSchema),
     defaultValues: {
+      title: "",
       type: InterviewType.CODING,
       difficulty: Difficulty.EASY,
       seniorityLevel: SeniorityLevel.ENTRY,
       language: ProgrammingLanguage.PYTHON,
+      numQuestions: 1,
     },
   });
 
@@ -56,6 +71,29 @@ export const InterviewForm = () => {
     <Form {...form}>
       {modal}
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Name your session{" "}
+                <span className="normal-case font-normal opacity-60">
+                  (optional)
+                </span>
+              </FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="e.g. Google onsite prep, round 2"
+                  className="h-11 rounded-xl"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
         <FormField
           control={form.control}
           name="type"
@@ -122,6 +160,54 @@ export const InterviewForm = () => {
                       <span className="text-sm font-semibold">{opt.label}</span>
                     </button>
                   ))}
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="numQuestions"
+          render={({ field }) => (
+            <FormItem className="space-y-3">
+              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Number of {form.watch("type") === "CODING" ? "coding " : ""}
+                questions
+              </FormLabel>
+              <FormControl>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center rounded-xl border overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        field.onChange(Math.max(1, field.value - 1))
+                      }
+                      disabled={field.value <= 1}
+                      className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    >
+                      <Minus className="size-4" />
+                    </button>
+                    <span className="w-10 text-center text-sm font-bold tabular-nums">
+                      {field.value}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        field.onChange(Math.min(MAX_QUESTIONS, field.value + 1))
+                      }
+                      disabled={field.value >= MAX_QUESTIONS}
+                      className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                    >
+                      <Plus className="size-4" />
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {form.watch("type") === "CODING"
+                      ? "Plus one behavioral warm-up question to open the session."
+                      : "Back-to-back questions in this session."}
+                  </p>
                 </div>
               </FormControl>
               <FormMessage />

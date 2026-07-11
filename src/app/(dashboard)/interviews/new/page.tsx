@@ -14,12 +14,12 @@ const Page = async () => {
           <Button
             variant="ghost"
             size="sm"
-            className="-ml-2 text-muted-foreground"
+            className="ml-2 text-muted-foreground"
+            render={<Link href="/interviews" />}
+            nativeButton={false}
           >
-            <Link href="/interviews">
-              <ChevronLeft className="size-4 mr-1" />
-              Back to Interviews
-            </Link>
+            <ChevronLeft className="size-4 mr-1" />
+            Back to Interviews
           </Button>
         </div>
 

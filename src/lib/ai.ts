@@ -24,57 +24,65 @@ export const reportSchema = z.object({
 
 export type AIReportOutput = z.infer<typeof reportSchema>;
 
-export interface AIReportInput {
+export interface AIReportQuestionPart {
   questionTitle: string;
   questionPrompt: string;
-  code: string;
-  language: string;
+  isBehavioral: boolean;
+  code?: string;
+  language?: string;
+  behavioralAnswer?: string;
   testResults: TestCaseExecutionResult[];
   passedTestCases: number;
   totalTestCases: number;
   hintsUsed: number;
-  behavioralQuestion?: string;
-  behavioralAnswer?: string;
+}
+
+export interface AIReportInput {
+  questions: AIReportQuestionPart[];
 }
 
 export async function generateInterviewReport(
   input: AIReportInput,
 ): Promise<AIReportOutput> {
+  const sections = input.questions
+    .map((q, i) => {
+      if (q.isBehavioral) {
+        return `Part ${i + 1} - Behavioral
+Question: ${q.questionTitle}
+${q.questionPrompt}
+Candidate's answer: ${q.behavioralAnswer || "(not answered)"}
+
+Use this answer to genuinely assess communication and confidence - don't just estimate
+those from the code. Look for structure (STAR-style), clarity, and how they frame the situation.
+If unanswered, note that in suggestions and lean on the coding parts for those scores instead.`;
+      }
+
+      return `Part ${i + 1} - Coding problem
+Question: ${q.questionTitle}
+${q.questionPrompt}
+
+Language: ${q.language || "unspecified"}
+Candidate's code:
+\`\`\`${q.language || ""}
+${q.code || "(no code submitted)"}
+\`\`\`
+
+Test results: ${q.passedTestCases}/${q.totalTestCases} passed.
+${q.testResults.map((r) => `- ${r.status}${r.error ? `: ${r.error}` : ""}`).join("\n")}
+
+Hints used: ${q.hintsUsed}/3. Factor this into problemSolving and confidence -
+more hints used should lower those scores, since a strong candidate needs less help.`;
+    })
+    .join("\n\n");
+
   const { output } = await generateText({
     model,
     output: Output.object({
       schema: reportSchema,
     }),
-    prompt: `You are a senior engineer at a top tech company reviewing a candidate's technical interview, which had two parts: a short behavioral warm-up and a coding problem.
+    prompt: `You are a senior engineer at a top tech company reviewing a candidate's technical interview. The interview had ${input.questions.length} part(s), evaluated below. Give ONE overall assessment that reflects performance across all parts, weighting coding problems most heavily.
 
-${
-  input.behavioralQuestion && input.behavioralAnswer
-    ? `Part 1 - Behavioral warm-up
-Question: ${input.behavioralQuestion}
-Candidate's answer: ${input.behavioralAnswer}
-
-Use this answer to genuinely assess communication and confidence - don't just estimate
-those from the code. Look for structure (STAR-style), clarity, and how they frame the situation.
-`
-    : `Part 1 - Behavioral warm-up: not answered. Score communication and confidence
-based only on code clarity/naming, and note in suggestions that the warm-up was skipped.
-`
-}
-Part 2 - Coding problem
-Question: ${input.questionTitle}
-${input.questionPrompt}
-
-Language: ${input.language}
-Candidate's code:
-\`\`\`${input.language}
-${input.code}
-\`\`\`
-
-Test results: ${input.passedTestCases}/${input.totalTestCases} passed.
-${input.testResults.map((r) => `- ${r.status}${r.error ? `: ${r.error}` : ""}`).join("\n")}
-
-Hints used: ${input.hintsUsed}/3. Factor this into problemSolving and confidence -
-more hints used should lower those scores, since a strong candidate needs less help.
+${sections}
 
 Respond ONLY with valid JSON, no markdown fences, matching exactly:
 {
