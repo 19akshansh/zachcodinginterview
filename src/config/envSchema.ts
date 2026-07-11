@@ -24,6 +24,7 @@ const envSchema = z.object({
   CODESERVER_APIKEY: z.string().min(1, "CODESERVER_APIKEY is required"),
   CODESERVER_TIMEOUT_MS: z.coerce.number().positive().default(15000),
   BLOB_READ_WRITE_TOKEN: z.string().min(1, "VERCEL_BLOB_URL is required"),
+  GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
 });
 
 export const envSchem = envSchema.parse({
@@ -46,4 +47,5 @@ export const envSchem = envSchema.parse({
   CODESERVER_APIKEY: process.env.CODESERVER_APIKEY,
   CODESERVER_TIMEOUT_MS: process.env.CODESERVER_TIMEOUT_MS,
   BLOB_READ_WRITE_TOKEN: process.env.BLOB_READ_WRITE_TOKEN,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 });

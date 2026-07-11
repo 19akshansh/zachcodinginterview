@@ -1,6 +1,6 @@
 {
   "name": "zachcodinginterview",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.12",
     "@base-ui/react": "^1.6.0",
     "@hookform/resolvers": "^5.4.0",
     "@polar-sh/better-auth": "^1.8.4",
@@ -29,6 +30,7 @@
     "@trpc/server": "^11.18.0",
     "@trpc/tanstack-react-query": "^11.18.0",
     "@vercel/blob": "^2.6.0",
+    "ai": "^7.0.22",
     "better-auth": "^1.6.23",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
 import { getSubscriptionStatus } from "@/lib/subscriptions";
+import { LIMITS } from "@/config/constants";
 
 export const createTRPCContext = cache(async (opts: { headers: Headers }) => {
   const session = await auth.api.getSession({
@@ -97,12 +98,14 @@ export const proProcedure = protectedProcedure.use(async ({ ctx, next }) => {
       ...ctx,
       limits: hasPro
         ? {
-            interviews: Infinity,
-            practice: Infinity,
+            interviews: LIMITS.PRO_INTERVIEWS,
+            practice: LIMITS.PRO_PRACTICE,
+            interviewLimitMinutes: LIMITS.PRO_INTERVIEW_LIMIT_MINUTES,
           }
         : {
-            interviews: 2,
-            practice: 2,
+            interviews: LIMITS.FREE_INTERVIEWS,
+            practice: LIMITS.FREE_PRACTICE,
+            interviewLimitMinutes: LIMITS.FREE_INTERVIEW_LIMIT_MINUTES,
           },
       hasPro,
     },
