@@ -1,5 +1,6 @@
-import { parseAsInteger, parseAsString } from "nuqs/server";
+import { parseAsInteger, parseAsString, parseAsStringEnum } from "nuqs/server";
 import { PAGINATION } from "@/config/constants";
+import { InterviewStatus } from "@/config/enums";
 
 export const interviewsParams = {
   page: parseAsInteger
@@ -9,4 +10,7 @@ export const interviewsParams = {
     .withDefault(PAGINATION.DEFAULT_PAGE_SIZE)
     .withOptions({ clearOnDefault: true }),
   search: parseAsString.withDefault("").withOptions({ clearOnDefault: true }),
+  status: parseAsStringEnum<InterviewStatus>(
+    Object.values(InterviewStatus),
+  ).withOptions({ clearOnDefault: true }),
 };

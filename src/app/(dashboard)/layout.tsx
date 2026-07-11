@@ -4,6 +4,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { envSchem } from "@/config/envSchema";
 import { requireAuth } from "@/lib/authUtils";
 import { Metadata } from "next";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 export const metadata: Metadata = {
   title: "Dashboard - ZACH Coding Interview",
@@ -25,7 +26,7 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
       <AppSidebar />
       <SidebarInset>
         <AppHeader />
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
       </SidebarInset>
     </SidebarProvider>
   );
