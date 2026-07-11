@@ -8,6 +8,8 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
+import { generateReportForInterview } from "@/lib/reportGeneration";
+import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
 import {
   InterviewType,
   Difficulty,
@@ -42,6 +44,7 @@ export const interviewsRouter = createTRPCRouter({
       }
 
       let questionId: string | undefined;
+      let behavioralQuestionId: string | undefined;
 
       if (input.type === "CODING") {
         const matchingQuestion = await prisma.question.findFirst({
@@ -60,6 +63,21 @@ export const interviewsRouter = createTRPCRouter({
         }
 
         questionId = matchingQuestion.id;
+
+        const behavioralQuestion = await prisma.question.findFirst({
+          where: {
+            type: "BEHAVIORAL",
+            seniorityLevel: input.seniorityLevel,
+          },
+        });
+
+        behavioralQuestionId =
+          behavioralQuestion?.id ??
+          (
+            await prisma.question.findFirst({
+              where: { type: "BEHAVIORAL" },
+            })
+          )?.id;
       }
 
       return await prisma.interview.create({
@@ -71,6 +89,8 @@ export const interviewsRouter = createTRPCRouter({
           candidateId: userId,
           status: "SCHEDULED",
           questionId,
+          behavioralQuestionId,
+          timeLimitMinutes: ctx.limits.interviewLimitMinutes,
         },
       });
     }),
@@ -124,6 +144,7 @@ export const interviewsRouter = createTRPCRouter({
               },
             },
           },
+          behavioralQuestion: true,
           submission: true,
           report: true,
           candidate: {
@@ -151,7 +172,7 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      return interview;
+      return await autoEndIfExpired(interview);
     }),
   getMany: protectedProcedure
     .input(
@@ -238,12 +259,29 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      return await prisma.interview.update({
+      const checked = await autoEndIfExpired(interview);
+      if (checked.status !== "IN_PROGRESS") {
+        return checked;
+      }
+
+      const { count } = await prisma.interview.updateMany({
+        where: { id: input.id, status: "IN_PROGRESS" },
+        data: { status: "COMPLETED", endedAt: new Date() },
+      });
+
+      if (count === 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Interview was already ended.",
+        });
+      }
+
+      generateReportForInterview(input.id).catch((err) => {
+        console.error("REPORT_GENERATION_FAILED", input.id, err);
+      });
+
+      return await prisma.interview.findUniqueOrThrow({
         where: { id: input.id },
-        data: {
-          status: "COMPLETED",
-          endedAt: new Date(),
-        },
       });
     }),
 

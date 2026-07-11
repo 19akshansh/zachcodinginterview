@@ -213,7 +213,8 @@ model Question {
   topics         String[]
   createdAt      DateTime        @default(now())
 
-  interviews Interview[]
+  interviews           Interview[] @relation("CodingQuestion")
+  behavioralInterviews Interview[] @relation("BehavioralQuestion")
   testCases  TestCase[]
 
   @@index([type])
@@ -250,10 +251,14 @@ model Interview {
   assignedByRecruiter   User?   @relation("RecruiterAssignedInterviews", fields: [assignedByRecruiterId], references: [id], onDelete: SetNull)
 
   questionId String?
-  question   Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  question   Question? @relation("CodingQuestion", fields: [questionId], references: [id], onDelete: SetNull)
+
+  behavioralQuestionId String?
+  behavioralQuestion   Question? @relation("BehavioralQuestion", fields: [behavioralQuestionId], references: [id], onDelete: SetNull)
 
   startedAt DateTime?
   endedAt   DateTime?
+  timeLimitMinutes Int @default(30)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -270,14 +275,19 @@ model Submission {
   id          String    @id @default(cuid())
   interviewId String    @unique
   interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  code        String
-  language    ProgrammingLanguage
+  code        String?
+  language    ProgrammingLanguage?
+
+  behavioralAnswer String?
 
   result          SubmissionResult?
   passedTestCases Int?
   totalTestCases  Int?
   executionTimeMs Int?
   memoryUsedKb    Int?
+
+  hints     String[] @default([])
+  hintLevel Int      @default(0)
 
   createdAt DateTime @default(now())
 
