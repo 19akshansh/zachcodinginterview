@@ -213,9 +213,8 @@ model Question {
   topics         String[]
   createdAt      DateTime        @default(now())
 
-  interviews           Interview[] @relation("CodingQuestion")
-  behavioralInterviews Interview[] @relation("BehavioralQuestion")
-  testCases  TestCase[]
+  interviewQuestions InterviewQuestion[]
+  testCases           TestCase[]
 
   @@index([type])
   @@index([difficulty])
@@ -237,6 +236,7 @@ model TestCase {
 
 model Interview {
   id             String          @id @default(cuid())
+  title          String?
   type           InterviewType
   status         InterviewStatus @default(SCHEDULED)
   difficulty     Difficulty
@@ -250,11 +250,7 @@ model Interview {
   assignedByRecruiterId String?
   assignedByRecruiter   User?   @relation("RecruiterAssignedInterviews", fields: [assignedByRecruiterId], references: [id], onDelete: SetNull)
 
-  questionId String?
-  question   Question? @relation("CodingQuestion", fields: [questionId], references: [id], onDelete: SetNull)
-
-  behavioralQuestionId String?
-  behavioralQuestion   Question? @relation("BehavioralQuestion", fields: [behavioralQuestionId], references: [id], onDelete: SetNull)
+  questions InterviewQuestion[]
 
   startedAt DateTime?
   endedAt   DateTime?
@@ -262,8 +258,7 @@ model Interview {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  submission Submission?
-  report     Report?
+  report Report?
 
   @@index([candidateId])
   @@index([assignedByRecruiterId])
@@ -271,13 +266,19 @@ model Interview {
   @@map("interview")
 }
 
-model Submission {
+// One row per question attached to an interview - this is what lets a
+// single interview hold several coding/behavioral questions, each with
+// its own answer, code, execution result and hints.
+model InterviewQuestion {
   id          String    @id @default(cuid())
-  interviewId String    @unique
+  interviewId String
   interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
-  code        String?
-  language    ProgrammingLanguage?
+  questionId  String
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  order       Int       @default(0)
 
+  code             String?
+  language         ProgrammingLanguage?
   behavioralAnswer String?
 
   result          SubmissionResult?
@@ -290,8 +291,11 @@ model Submission {
   hintLevel Int      @default(0)
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  @@map("submission")
+  @@unique([interviewId, questionId])
+  @@index([interviewId])
+  @@map("interview_question")
 }
 
 model Report {

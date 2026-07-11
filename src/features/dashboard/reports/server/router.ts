@@ -60,7 +60,12 @@ export const reportsRouter = createTRPCRouter({
           interview: {
             include: {
               candidate: { select: { name: true, image: true, id: true } },
-              question: { select: { title: true, type: true } },
+              questions: {
+                orderBy: { order: "asc" },
+                select: {
+                  question: { select: { title: true, type: true } },
+                },
+              },
             },
           },
         },
@@ -115,7 +120,14 @@ export const reportsRouter = createTRPCRouter({
             interview: {
               select: {
                 type: true,
-                question: { select: { title: true } },
+                title: true,
+                questions: {
+                  orderBy: { order: "asc" },
+                  take: 1,
+                  select: {
+                    question: { select: { title: true } },
+                  },
+                },
               },
             },
           },
@@ -171,7 +183,13 @@ export const reportsRouter = createTRPCRouter({
           interview: {
             include: {
               candidate: { select: { name: true } },
-              question: { select: { title: true } },
+              questions: {
+                orderBy: { order: "asc" },
+                take: 1,
+                select: {
+                  question: { select: { title: true } },
+                },
+              },
             },
           },
         },
@@ -195,7 +213,9 @@ export const reportsRouter = createTRPCRouter({
             report,
             candidateName: report.interview.candidate.name,
             questionTitle:
-              report.interview.question?.title || "Technical Interview",
+              report.interview.title ||
+              report.interview.questions[0]?.question.title ||
+              "Technical Interview",
           }),
         );
 

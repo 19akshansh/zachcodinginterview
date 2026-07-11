@@ -16,133 +16,53 @@ import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
 
 const MAX_HINT_LEVEL = 3;
 
+async function loadActiveInterviewQuestion(
+  interviewQuestionId: string,
+  userId: string,
+) {
+  const interviewQuestion = await prisma.interviewQuestion.findUnique({
+    where: { id: interviewQuestionId },
+    include: {
+      question: { include: { testCases: true } },
+      interview: true,
+    },
+  });
+
+  if (
+    !interviewQuestion ||
+    interviewQuestion.interview.candidateId !== userId
+  ) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "You cannot submit for this question.",
+    });
+  }
+
+  const current = await autoEndIfExpired(interviewQuestion.interview);
+  if (current.status !== "IN_PROGRESS") {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "This interview has ended and can no longer accept answers.",
+    });
+  }
+
+  return interviewQuestion;
+}
+
 export const submissionsRouter = createTRPCRouter({
   create: protectedProcedure
     .input(
       z.object({
-        interviewId: z.string(),
+        interviewQuestionId: z.string(),
         code: z.string(),
         language: z.enum(ProgrammingLanguage),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { interviewId, code, language } = input;
-
-      const interview = await prisma.interview.findUnique({
-        where: { id: interviewId },
-        include: {
-          question: { include: { testCases: true } },
-        },
-      });
-
-      if (!interview || interview.candidateId !== ctx.auth.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You cannot submit for this interview.",
-        });
-      }
-
-      const current = await autoEndIfExpired(interview);
-      if (current.status !== "IN_PROGRESS") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message:
-            "This interview has ended and can no longer accept submissions.",
-        });
-      }
-
-      if (!interview.question) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This interview has no coding question to submit against.",
-        });
-      }
-
-      if (!isExecutableLanguage(language)) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: `${PROGRAMMING_LANGUAGE_LABELS[language]} is not supported yet - only JavaScript and Python can be executed.`,
-        });
-      }
-
-      const results = await runAgainstTestCases({
-        language,
-        code,
-        testCases: interview.question.testCases,
-      });
-
-      const {
-        totalTestCases,
-        passedTestCases,
-        result,
-        executionTimeMs,
-        memoryUsedKb,
-      } = summarizeResults(results);
-
-      return await prisma.submission.upsert({
-        where: { interviewId },
-        update: {
-          code,
-          language,
-          result,
-          passedTestCases,
-          totalTestCases,
-          executionTimeMs,
-          memoryUsedKb,
-          createdAt: new Date(),
-        },
-        create: {
-          interviewId,
-          code,
-          language,
-          result,
-          passedTestCases,
-          totalTestCases,
-          executionTimeMs,
-          memoryUsedKb,
-        },
-      });
-    }),
-  run: protectedProcedure
-    .input(
-      z.object({
-        interviewId: z.string(),
-        code: z.string(),
-        language: z.enum(ProgrammingLanguage),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      const interview = await prisma.interview.findUnique({
-        where: { id: input.interviewId },
-        include: {
-          question: {
-            include: {
-              testCases: {
-                where: { visibility: "PUBLIC" },
-              },
-            },
-          },
-        },
-      });
-
-      if (!interview || !interview.question) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Question not found",
-        });
-      }
-
-      if (interview.candidateId !== ctx.auth.user.id) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-
-      const current = await autoEndIfExpired(interview);
-      if (current.status !== "IN_PROGRESS") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This interview has ended and code can no longer be run.",
-        });
-      }
+      const interviewQuestion = await loadActiveInterviewQuestion(
+        input.interviewQuestionId,
+        ctx.auth.user.id,
+      );
 
       if (!isExecutableLanguage(input.language)) {
         throw new TRPCError({
@@ -154,7 +74,59 @@ export const submissionsRouter = createTRPCRouter({
       const results = await runAgainstTestCases({
         language: input.language,
         code: input.code,
-        testCases: interview.question.testCases,
+        testCases: interviewQuestion.question.testCases,
+      });
+
+      const {
+        totalTestCases,
+        passedTestCases,
+        result,
+        executionTimeMs,
+        memoryUsedKb,
+      } = summarizeResults(results);
+
+      return await prisma.interviewQuestion.update({
+        where: { id: input.interviewQuestionId },
+        data: {
+          code: input.code,
+          language: input.language,
+          result,
+          passedTestCases,
+          totalTestCases,
+          executionTimeMs,
+          memoryUsedKb,
+        },
+      });
+    }),
+  run: protectedProcedure
+    .input(
+      z.object({
+        interviewQuestionId: z.string(),
+        code: z.string(),
+        language: z.enum(ProgrammingLanguage),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const interviewQuestion = await loadActiveInterviewQuestion(
+        input.interviewQuestionId,
+        ctx.auth.user.id,
+      );
+
+      if (!isExecutableLanguage(input.language)) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: `${PROGRAMMING_LANGUAGE_LABELS[input.language]} is not supported yet - only JavaScript and Python can be executed.`,
+        });
+      }
+
+      const publicTestCases = interviewQuestion.question.testCases.filter(
+        (tc) => tc.visibility === "PUBLIC",
+      );
+
+      const results = await runAgainstTestCases({
+        language: input.language,
+        code: input.code,
+        testCases: publicTestCases,
       });
 
       return {
@@ -168,7 +140,7 @@ export const submissionsRouter = createTRPCRouter({
       const interview = await prisma.interview.findUnique({
         where: { id: input.interviewId },
         include: {
-          submission: true,
+          questions: { orderBy: { order: "asc" } },
         },
       });
 
@@ -187,60 +159,27 @@ export const submissionsRouter = createTRPCRouter({
       if (!isOwner && !isAssignedRecruiter && !isAdmin) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "You do not have permission to view this submission.",
+          message: "You do not have permission to view these submissions.",
         });
       }
 
-      if (!interview.submission) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "No submission found for this interview.",
-        });
-      }
-
-      return interview.submission;
+      return interview.questions;
     }),
   getHint: protectedProcedure
     .input(
       z.object({
-        interviewId: z.string(),
+        interviewQuestionId: z.string(),
         code: z.string(),
         language: z.enum(ProgrammingLanguage),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const interview = await prisma.interview.findUnique({
-        where: { id: input.interviewId },
-        include: { question: true, submission: true },
-      });
+      const interviewQuestion = await loadActiveInterviewQuestion(
+        input.interviewQuestionId,
+        ctx.auth.user.id,
+      );
 
-      if (!interview) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Interview not found",
-        });
-      }
-
-      if (interview.candidateId !== ctx.auth.user.id) {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-
-      const current = await autoEndIfExpired(interview);
-      if (current.status !== "IN_PROGRESS") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "Hints are only available during an active interview.",
-        });
-      }
-
-      if (!interview.question) {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This interview has no question to hint against.",
-        });
-      }
-
-      const currentLevel = interview.submission?.hintLevel ?? 0;
+      const currentLevel = interviewQuestion.hintLevel ?? 0;
 
       if (currentLevel >= MAX_HINT_LEVEL) {
         throw new TRPCError({
@@ -252,65 +191,41 @@ export const submissionsRouter = createTRPCRouter({
       const nextLevel = (currentLevel + 1) as 1 | 2 | 3;
 
       const hintText = await generateHint({
-        questionTitle: interview.question.title,
-        questionPrompt: interview.question.prompt,
+        questionTitle: interviewQuestion.question.title,
+        questionPrompt: interviewQuestion.question.prompt,
         code: input.code,
         language: input.language,
         level: nextLevel,
       });
 
-      const submission = await prisma.submission.upsert({
-        where: { interviewId: input.interviewId },
-        update: {
-          hints: { push: hintText },
-          hintLevel: nextLevel,
-        },
-        create: {
-          interviewId: input.interviewId,
+      const updated = await prisma.interviewQuestion.update({
+        where: { id: input.interviewQuestionId },
+        data: {
           code: input.code,
           language: input.language,
-          hints: [hintText],
+          hints: { push: hintText },
           hintLevel: nextLevel,
         },
       });
 
-      return { hint: hintText, level: nextLevel, submission };
+      return { hint: hintText, level: nextLevel, interviewQuestion: updated };
     }),
-
   saveBehavioralAnswer: protectedProcedure
     .input(
       z.object({
-        interviewId: z.string(),
+        interviewQuestionId: z.string(),
         answer: z.string().min(1, "Answer cannot be empty"),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const interview = await prisma.interview.findUnique({
-        where: { id: input.interviewId },
-      });
+      await loadActiveInterviewQuestion(
+        input.interviewQuestionId,
+        ctx.auth.user.id,
+      );
 
-      if (!interview || interview.candidateId !== ctx.auth.user.id) {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "You cannot answer for this interview.",
-        });
-      }
-
-      const current = await autoEndIfExpired(interview);
-      if (current.status !== "IN_PROGRESS") {
-        throw new TRPCError({
-          code: "BAD_REQUEST",
-          message: "This interview has ended and can no longer accept answers.",
-        });
-      }
-
-      return await prisma.submission.upsert({
-        where: { interviewId: input.interviewId },
-        update: { behavioralAnswer: input.answer },
-        create: {
-          interviewId: input.interviewId,
-          behavioralAnswer: input.answer,
-        },
+      return await prisma.interviewQuestion.update({
+        where: { id: input.interviewQuestionId },
+        data: { behavioralAnswer: input.answer },
       });
     }),
 });

@@ -307,7 +307,11 @@ export const recruitersRouter = createTRPCRouter({
           interview: {
             include: {
               candidate: { select: { name: true, image: true, email: true } },
-              question: { select: { title: true } },
+              questions: {
+                orderBy: { order: "asc" },
+                take: 1,
+                select: { question: { select: { title: true } } },
+              },
             },
           },
         },
