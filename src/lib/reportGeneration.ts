@@ -1,39 +1,48 @@
 import prisma from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { generateInterviewReport } from "@/lib/ai";
+import { generateInterviewReport, type AIReportQuestionPart } from "@/lib/ai";
+import { InterviewType } from "@/config/enums";
 
 export async function generateReportForInterview(interviewId: string) {
   const interview = await prisma.interview.findUnique({
     where: { id: interviewId },
     include: {
-      question: true,
-      behavioralQuestion: true,
-      submission: true,
+      questions: {
+        orderBy: { order: "asc" },
+        include: { question: true },
+      },
     },
   });
 
-  if (!interview || !interview.submission || !interview.question) {
+  if (!interview || interview.questions.length === 0) {
     return null;
   }
 
-  const { submission, question, behavioralQuestion } = interview;
+  const parts: AIReportQuestionPart[] = interview.questions.map((iq) => {
+    const isBehavioral = iq.question.type === InterviewType.BEHAVIORAL;
 
-  if (!submission.code || !submission.language) {
-    return null;
-  }
-
-  const aiReport = await generateInterviewReport({
-    questionTitle: question.title,
-    questionPrompt: question.prompt,
-    code: submission.code,
-    language: submission.language,
-    testResults: [],
-    passedTestCases: submission.passedTestCases ?? 0,
-    totalTestCases: submission.totalTestCases ?? 0,
-    hintsUsed: submission.hintLevel,
-    behavioralQuestion: behavioralQuestion?.prompt,
-    behavioralAnswer: submission.behavioralAnswer ?? undefined,
+    return {
+      questionTitle: iq.question.title,
+      questionPrompt: iq.question.prompt,
+      isBehavioral,
+      code: iq.code ?? undefined,
+      language: iq.language ?? undefined,
+      behavioralAnswer: iq.behavioralAnswer ?? undefined,
+      testResults: [],
+      passedTestCases: iq.passedTestCases ?? 0,
+      totalTestCases: iq.totalTestCases ?? 0,
+      hintsUsed: iq.hintLevel,
+    };
   });
+
+  const hasAnyAnswer = interview.questions.some(
+    (iq) => iq.code || iq.behavioralAnswer,
+  );
+  if (!hasAnyAnswer) {
+    return null;
+  }
+
+  const aiReport = await generateInterviewReport({ questions: parts });
 
   return prisma.report.upsert({
     where: { interviewId },
