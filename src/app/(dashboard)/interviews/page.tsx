@@ -8,7 +8,7 @@ import {
 import { interviewsParamsLoader } from "@/features/dashboard/interviews/server/paramsLoader";
 import { prefetchInterviews } from "@/features/dashboard/interviews/server/prefetch";
 
-type UrlsPageProps = {
+type InterviewsPageProps = {
   searchParams: Promise<{
     page?: string;
     search?: string;
@@ -16,7 +16,7 @@ type UrlsPageProps = {
   }>;
 };
 
-const Page = async (props: UrlsPageProps) => {
+const Page = async (props: InterviewsPageProps) => {
   await requireAuth();
   const { page, pageSize, search } = await interviewsParamsLoader(
     props.searchParams,
@@ -31,7 +31,7 @@ const Page = async (props: UrlsPageProps) => {
   return (
     <HydrateClient>
       <ErrorBoundary fallback={<InterviewsError />}>
-        <InterviewsContainer />
+          <InterviewsContainer />
       </ErrorBoundary>
     </HydrateClient>
   );

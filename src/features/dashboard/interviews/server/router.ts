@@ -94,7 +94,6 @@ export const interviewsRouter = createTRPCRouter({
         },
       });
     }),
-
   start: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -242,7 +241,6 @@ export const interviewsRouter = createTRPCRouter({
         hasPrevPage: page > 1,
       };
     }),
-
   end: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
@@ -284,7 +282,6 @@ export const interviewsRouter = createTRPCRouter({
         where: { id: input.id },
       });
     }),
-
   abandon: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
