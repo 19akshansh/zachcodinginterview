@@ -3,6 +3,7 @@ import {
   ProgrammingLanguage,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
+import { EntryPointResolutionError, wrapWithHarness } from "@/lib/testHarness";
 
 const CODESERVER_LANGUAGE_IDS: Partial<Record<ProgrammingLanguage, string>> =
   {
@@ -110,9 +111,33 @@ export async function runAgainstTestCases(params: {
 
   for (const testCase of params.testCases) {
     const startedAt = Date.now();
+
+    let wrappedCode: string;
+    try {
+      wrappedCode = wrapWithHarness(params.language, params.code, testCase.input);
+    } catch (err: unknown) {
+      const message =
+        err instanceof EntryPointResolutionError
+          ? err.message
+          : `Could not prepare this submission for execution: ${
+              err instanceof Error ? err.message : String(err)
+            }`;
+      results.push({
+        testCaseId: testCase.id,
+        passed: false,
+        status: "Setup Error",
+        stdout: null,
+        error: message,
+        expected: testCase.expectedOutput,
+        executionTimeMs: Date.now() - startedAt,
+        memoryUsedKb: 0,
+      });
+      continue;
+    }
+
     const raw = await executeOnCodeServer({
       language: params.language,
-      code: params.code,
+      code: wrappedCode,
       stdin: testCase.input,
     });
     const executionTimeMs = Date.now() - startedAt;
@@ -158,7 +183,9 @@ export function summarizeResults(results: TestCaseExecutionResult[]) {
 
   const hasError = results.some(
     (r) =>
-      r.status === "Runtime Error" || r.status === "Unsupported Language",
+      r.status === "Runtime Error" ||
+      r.status === "Unsupported Language" ||
+      r.status === "Setup Error",
   );
   const hasTimeout = results.some((r) => r.status === "Time Limit Exceeded");
 
