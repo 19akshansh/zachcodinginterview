@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCreateInterview } from "../hooks/useInterviews";
 import { useUpgradeModal } from "@/hooks/useUpgradeModal";
-import { Loader2, PlayCircle, Minus, Plus } from "lucide-react";
+import { Loader2, PlayCircle, Minus, Plus, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import {
@@ -33,44 +33,139 @@ import {
 import { LIMITS } from "@/config/constants";
 
 const MAX_QUESTIONS = LIMITS.PRO_MAX_QUESTIONS;
+const ALL_TYPES = interviewTypeOptions.map((opt) => opt.value);
 
-const interviewSchema = z.object({
-  title: z.string().trim().max(80, "Keep it under 80 characters").optional(),
-  type: z.enum(InterviewType),
-  difficulty: z.enum(Difficulty),
-  seniorityLevel: z.enum(SeniorityLevel),
-  language: z.enum(ProgrammingLanguage).optional(),
-  numQuestions: z.number().int().min(1).max(MAX_QUESTIONS),
-});
+const interviewSchema = z
+  .object({
+    title: z.string().trim().max(80, "Keep it under 80 characters").optional(),
+    types: z
+      .array(z.enum(InterviewType))
+      .min(1, "Select at least one interview type"),
+    difficulty: z.enum(Difficulty),
+    seniorityLevel: z.enum(SeniorityLevel),
+    language: z.enum(ProgrammingLanguage).optional(),
+    questionCounts: z.record(z.string(), z.number().int().min(1)),
+  })
+  .refine(
+    (data) =>
+      data.types.reduce(
+        (sum, type) => sum + (data.questionCounts[type] ?? 1),
+        0,
+      ) <= MAX_QUESTIONS,
+    {
+      message: `Total questions across all selected types can't exceed ${MAX_QUESTIONS}`,
+      path: ["questionCounts"],
+    },
+  );
+
+type InterviewFormValues = z.infer<typeof interviewSchema>;
 
 export const InterviewForm = () => {
   const router = useRouter();
   const { modal, handleError } = useUpgradeModal();
   const createInterview = useCreateInterview();
 
-  const form = useForm<z.infer<typeof interviewSchema>>({
+  const form = useForm<InterviewFormValues>({
     resolver: zodResolver(interviewSchema),
     defaultValues: {
       title: "",
-      type: InterviewType.CODING,
+      types: [InterviewType.CODING],
       difficulty: Difficulty.EASY,
       seniorityLevel: SeniorityLevel.ENTRY,
       language: ProgrammingLanguage.PYTHON,
-      numQuestions: 1,
+      questionCounts: { [InterviewType.CODING]: 1 },
     },
   });
 
-  const onSubmit = (values: z.infer<typeof interviewSchema>) => {
-    createInterview.mutate(values, {
-      onSuccess: (data) => router.push(`/interviews/${data.id}`),
-      onError: (err) => handleError(err),
-    });
+  const types = form.watch("types");
+  const questionCounts = form.watch("questionCounts");
+  const isAllSelected = ALL_TYPES.every((t) => types.includes(t));
+  const totalQuestions = types.reduce(
+    (sum, type) => sum + (questionCounts[type] ?? 1),
+    0,
+  );
+
+  const toggleType = (value: InterviewType) => {
+    const isSelected = types.includes(value);
+
+    if (isSelected) {
+      if (types.length === 1) return; 
+      form.setValue(
+        "types",
+        types.filter((t) => t !== value),
+        { shouldValidate: true },
+      );
+      return;
+    }
+
+    form.setValue("types", [...types, value], { shouldValidate: true });
+    if (questionCounts[value] === undefined) {
+      form.setValue(
+        "questionCounts",
+        { ...questionCounts, [value]: 1 },
+        { shouldValidate: true },
+      );
+    }
+  };
+
+  const toggleSelectAll = () => {
+    if (isAllSelected) {
+      form.setValue("types", [InterviewType.CODING], {
+        shouldValidate: true,
+      });
+      return;
+    }
+
+    const nextCounts = { ...questionCounts };
+    for (const t of ALL_TYPES) {
+      if (nextCounts[t] === undefined) nextCounts[t] = 1;
+    }
+    form.setValue("questionCounts", nextCounts);
+    form.setValue("types", ALL_TYPES, { shouldValidate: true });
+  };
+
+  const updateCount = (type: InterviewType, delta: number) => {
+    const current = questionCounts[type] ?? 1;
+    const next = current + delta;
+    if (next < 1) return;
+    if (totalQuestions - current + next > MAX_QUESTIONS) return;
+    form.setValue(
+      "questionCounts",
+      { ...questionCounts, [type]: next },
+      { shouldValidate: true },
+    );
+  };
+
+  const onSubmit = (values: InterviewFormValues) => {
+    const selections = values.types.map((type) => ({
+      type,
+      count: values.questionCounts[type] ?? 1,
+    }));
+
+    createInterview.mutate(
+      {
+        title: values.title,
+        selections,
+        difficulty: values.difficulty,
+        seniorityLevel: values.seniorityLevel,
+        language: values.language,
+      },
+      {
+        onSuccess: (data) => router.push(`/interviews/${data.id}`),
+        onError: (err) => handleError(err),
+      },
+    );
   };
 
   return (
     <Form {...form}>
       {modal}
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          console.log("Validation failed:", errors);
+        })}
+        className="space-y-8"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -96,30 +191,51 @@ export const InterviewForm = () => {
 
         <FormField
           control={form.control}
-          name="type"
+          name="types"
           render={({ field }) => (
             <FormItem className="space-y-3">
-              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Interview Type
-              </FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  Interview Type{" "}
+                  <span className="normal-case font-normal opacity-60">
+                    (select one or more)
+                  </span>
+                </FormLabel>
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all",
+                    isAllSelected
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background border-border text-muted-foreground hover:border-primary/50 hover:text-foreground",
+                  )}
+                >
+                  <CheckCheck className="size-3.5" />
+                  {isAllSelected ? "All selected" : "Select all"}
+                </button>
+              </div>
               <FormControl>
                 <div className="flex flex-wrap gap-2">
-                  {interviewTypeOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => field.onChange(opt.value)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all",
-                        field.value === opt.value
-                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                          : "bg-background border-border hover:border-primary/50 text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      <opt.icon className="size-4" />
-                      {opt.label}
-                    </button>
-                  ))}
+                  {interviewTypeOptions.map((opt) => {
+                    const isActive = field.value.includes(opt.value);
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => toggleType(opt.value)}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all",
+                          isActive
+                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                            : "bg-background border-border hover:border-primary/50 text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        <opt.icon className="size-4" />
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </FormControl>
               <FormMessage />
@@ -169,47 +285,71 @@ export const InterviewForm = () => {
 
         <FormField
           control={form.control}
-          name="numQuestions"
-          render={({ field }) => (
+          name="questionCounts"
+          render={() => (
             <FormItem className="space-y-3">
-              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                Number of {form.watch("type") === "CODING" ? "coding " : ""}
-                questions
-              </FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  {types.length > 1
+                    ? "Questions per type"
+                    : `Number of ${interviewTypeOptions.find((o) => o.value === types[0])?.label ?? ""} questions`}
+                </FormLabel>
+                <span className="text-xs font-semibold text-muted-foreground tabular-nums">
+                  {totalQuestions}/{MAX_QUESTIONS} total
+                </span>
+              </div>
               <FormControl>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center rounded-xl border overflow-hidden">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        field.onChange(Math.max(1, field.value - 1))
-                      }
-                      disabled={field.value <= 1}
-                      className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    >
-                      <Minus className="size-4" />
-                    </button>
-                    <span className="w-10 text-center text-sm font-bold tabular-nums">
-                      {field.value}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        field.onChange(Math.min(MAX_QUESTIONS, field.value + 1))
-                      }
-                      disabled={field.value >= MAX_QUESTIONS}
-                      className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                    >
-                      <Plus className="size-4" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {form.watch("type") === "CODING"
-                      ? "Plus one behavioral warm-up question to open the session."
-                      : "Back-to-back questions in this session."}
-                  </p>
+                <div className="space-y-2">
+                  {interviewTypeOptions
+                    .filter((opt) => types.includes(opt.value))
+                    .map((opt) => {
+                      const count = questionCounts[opt.value] ?? 1;
+                      return (
+                        <div
+                          key={opt.value}
+                          className={cn(
+                            "flex items-center gap-4",
+                            types.length > 1 &&
+                              "p-3 rounded-xl border bg-background",
+                          )}
+                        >
+                          {types.length > 1 && (
+                            <div className="flex items-center gap-2 text-sm font-medium flex-1 min-w-0">
+                              <opt.icon className="size-4 shrink-0 text-muted-foreground" />
+                              <span className="truncate">{opt.label}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center rounded-xl border overflow-hidden shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => updateCount(opt.value, -1)}
+                              disabled={count <= 1}
+                              className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                            >
+                              <Minus className="size-4" />
+                            </button>
+                            <span className="w-10 text-center text-sm font-bold tabular-nums">
+                              {count}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateCount(opt.value, 1)}
+                              disabled={totalQuestions >= MAX_QUESTIONS}
+                              className="flex items-center justify-center size-10 text-muted-foreground hover:bg-muted disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                            >
+                              <Plus className="size-4" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
               </FormControl>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {types.length > 1
+                  ? "Adjust how many questions of each type to include - back-to-back in this session."
+                  : "Back-to-back questions in this session."}
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -255,7 +395,7 @@ export const InterviewForm = () => {
           )}
         />
 
-        {form.watch("type") === "CODING" && (
+        {types.includes(InterviewType.CODING) && (
           <FormField
             control={form.control}
             name="language"

@@ -107,22 +107,23 @@ export function parseTestCaseInput(raw: string): ParsedArg[] {
     } catch {}
   }
 
-  const lines = trimmed
+  const segments = trimmed
     .split("\n")
-    .map((l) => l.trim())
-    .filter((l) => l !== "");
+    .flatMap((line) => splitTopLevel(line, ","))
+    .map((s) => s.trim())
+    .filter((s) => s !== "");
 
   const named: ParsedArg[] = [];
-  let allLinesNamed = lines.length > 0;
-  for (const line of lines) {
-    const eqIdx = findTopLevelAssign(line);
+  let allLinesNamed = segments.length > 0;
+  for (const segment of segments) {
+    const eqIdx = findTopLevelAssign(segment);
     if (eqIdx === -1) {
       allLinesNamed = false;
       break;
     }
     named.push({
-      name: line.slice(0, eqIdx).trim(),
-      value: parseLiteralValue(line.slice(eqIdx + 1).trim()),
+      name: segment.slice(0, eqIdx).trim(),
+      value: parseLiteralValue(segment.slice(eqIdx + 1).trim()),
     });
   }
   if (allLinesNamed) return named;
@@ -305,7 +306,9 @@ function extractPythonEntryPoints(code: string): EntryPointCandidate[] {
       if (line.trim() === "") continue;
       const indent = line.match(/^(\s*)/)![1].length;
       if (indent <= classIndent) break;
-      const m = line.match(/^\s*def\s+(\w+)\s*\(\s*self\s*(?:,\s*(.*))?\)\s*:/);
+      const m = line.match(
+        /^\s*def\s+(\w+)\s*\(\s*self\s*(?:,\s*(.*))?\)\s*(?:->\s*[^:]+)?\s*:/,
+      );
       if (m && !m[1].startsWith("__")) {
         methods.push({
           name: m[1],

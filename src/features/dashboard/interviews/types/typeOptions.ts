@@ -1,62 +1,73 @@
 import {
-  SiPython,
-  SiOpenjdk,
-  SiJavascript,
-  SiTypescript,
+  Code2,
+  Crown,
+  Feather,
+  FileText,
+  Flame,
+  Globe,
+  Medal,
+  MessageSquare,
+  Network,
+  ShieldCheck,
+  Sprout,
+  TrendingUp,
+  User,
+  Zap,
+} from "lucide-react";
+import {
   SiCplusplus,
   SiGo,
+  SiJavascript,
+  SiOpenjdk,
+  SiPython,
   SiRust,
+  SiTypescript,
 } from "react-icons/si";
 import {
-  InterviewType,
   Difficulty,
-  SeniorityLevel,
+  INTERVIEW_TYPE_LABELS,
+  InterviewType,
   ProgrammingLanguage,
+  SeniorityLevel,
 } from "@/config/enums";
-import {
-  Feather,
-  Flame,
-  Zap,
-  Globe,
-  FileText,
-  Network,
-  MessageSquare,
-  Code2,
-  Sprout,
-  User,
-  TrendingUp,
-  Medal,
-  ShieldCheck,
-  Crown,
-} from "lucide-react";
 
 export const interviewTypeOptions = [
   {
     value: InterviewType.CODING,
-    label: "Coding",
+    label: INTERVIEW_TYPE_LABELS[InterviewType.CODING],
     icon: Code2,
   },
   {
     value: InterviewType.BEHAVIORAL,
-    label: "Behavioral",
+    label: INTERVIEW_TYPE_LABELS[InterviewType.BEHAVIORAL],
     icon: MessageSquare,
   },
   {
     value: InterviewType.SYSTEM_DESIGN,
-    label: "System Design",
+    label: INTERVIEW_TYPE_LABELS[InterviewType.SYSTEM_DESIGN],
     icon: Network,
   },
   {
     value: InterviewType.RESUME_BASED,
-    label: "Resume Based",
+    label: INTERVIEW_TYPE_LABELS[InterviewType.RESUME_BASED],
     icon: FileText,
   },
   {
     value: InterviewType.DOMAIN_SPECIFIC,
-    label: "Domain Specific",
+    label: INTERVIEW_TYPE_LABELS[InterviewType.DOMAIN_SPECIFIC],
     icon: Globe,
   },
 ];
+
+export const interviewTypeMeta: Record<
+  string,
+  { label: string; icon: (typeof interviewTypeOptions)[number]["icon"] }
+> = Object.fromEntries(
+  interviewTypeOptions.map((opt) => [
+    opt.value,
+    { label: opt.label, icon: opt.icon },
+  ]),
+);
 
 export const difficultyOptions = [
   { value: Difficulty.EASY, label: "Easy", icon: Feather },

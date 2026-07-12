@@ -18,22 +18,18 @@ export async function generateReportForInterview(interviewId: string) {
     return null;
   }
 
-  const parts: AIReportQuestionPart[] = interview.questions.map((iq) => {
-    const isBehavioral = iq.question.type === InterviewType.BEHAVIORAL;
-
-    return {
-      questionTitle: iq.question.title,
-      questionPrompt: iq.question.prompt,
-      isBehavioral,
-      code: iq.code ?? undefined,
-      language: iq.language ?? undefined,
-      behavioralAnswer: iq.behavioralAnswer ?? undefined,
-      testResults: [],
-      passedTestCases: iq.passedTestCases ?? 0,
-      totalTestCases: iq.totalTestCases ?? 0,
-      hintsUsed: iq.hintLevel,
-    };
-  });
+  const parts: AIReportQuestionPart[] = interview.questions.map((iq) => ({
+    questionTitle: iq.question.title,
+    questionPrompt: iq.question.prompt,
+    interviewType: iq.question.type as InterviewType,
+    code: iq.code ?? undefined,
+    language: iq.language ?? undefined,
+    writtenAnswer: iq.behavioralAnswer ?? undefined,
+    testResults: [],
+    passedTestCases: iq.passedTestCases ?? 0,
+    totalTestCases: iq.totalTestCases ?? 0,
+    hintsUsed: iq.hintLevel ?? 0,
+  }));
 
   const hasAnyAnswer = interview.questions.some(
     (iq) => iq.code || iq.behavioralAnswer,

@@ -90,6 +90,14 @@ export enum InviteStatus {
   COMPLETED = "COMPLETED",
 }
 
+export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
+  [InterviewType.CODING]: "Coding",
+  [InterviewType.BEHAVIORAL]: "Behavioral",
+  [InterviewType.SYSTEM_DESIGN]: "System Design",
+  [InterviewType.RESUME_BASED]: "Resume Based",
+  [InterviewType.DOMAIN_SPECIFIC]: "Domain Specific",
+};
+
 export const PROGRAMMING_LANGUAGE_LABELS: Record<ProgrammingLanguage, string> =
   {
     [ProgrammingLanguage.PYTHON]: "Python",

@@ -2,11 +2,11 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { envSchem } from "@/config/envSchema";
-import { Verdict } from "@/config/enums";
+import { InterviewType, INTERVIEW_TYPE_LABELS, Verdict } from "@/config/enums";
 import type { TestCaseExecutionResult } from "@/lib/codeExecution";
 
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
-const model = google("gemini-2.0-flash");
+const model = google("gemini-3.0-flash");
 
 export const reportSchema = z.object({
   overallScore: z.number().min(0).max(100),
@@ -27,10 +27,10 @@ export type AIReportOutput = z.infer<typeof reportSchema>;
 export interface AIReportQuestionPart {
   questionTitle: string;
   questionPrompt: string;
-  isBehavioral: boolean;
+  interviewType: InterviewType;
   code?: string;
   language?: string;
-  behavioralAnswer?: string;
+  writtenAnswer?: string;
   testResults: TestCaseExecutionResult[];
   passedTestCases: number;
   totalTestCases: number;
@@ -41,20 +41,36 @@ export interface AIReportInput {
   questions: AIReportQuestionPart[];
 }
 
+const WRITTEN_RESPONSE_GUIDANCE: Partial<Record<InterviewType, string>> = {
+  [InterviewType.BEHAVIORAL]:
+    "Look for structure (STAR-style), clarity, and how they frame the situation.",
+  [InterviewType.SYSTEM_DESIGN]:
+    "Look for structured trade-off analysis, scalability reasoning, and clear articulation of the architecture and its components.",
+  [InterviewType.RESUME_BASED]:
+    "Look for concrete specifics, ownership of the work described, and clarity in how they explain their past experience.",
+  [InterviewType.DOMAIN_SPECIFIC]:
+    "Look for depth and accuracy of domain knowledge, and clarity of explanation.",
+};
+
 export async function generateInterviewReport(
   input: AIReportInput,
 ): Promise<AIReportOutput> {
   const sections = input.questions
     .map((q, i) => {
-      if (q.isBehavioral) {
-        return `Part ${i + 1} - Behavioral
+      if (q.interviewType !== InterviewType.CODING) {
+        const label = INTERVIEW_TYPE_LABELS[q.interviewType];
+        const guidance =
+          WRITTEN_RESPONSE_GUIDANCE[q.interviewType] ??
+          "Look for clarity, structure, and depth of reasoning.";
+
+        return `Part ${i + 1} - ${label}
 Question: ${q.questionTitle}
 ${q.questionPrompt}
-Candidate's answer: ${q.behavioralAnswer || "(not answered)"}
+Candidate's written response: ${q.writtenAnswer || "(not answered)"}
 
-Use this answer to genuinely assess communication and confidence - don't just estimate
-those from the code. Look for structure (STAR-style), clarity, and how they frame the situation.
-If unanswered, note that in suggestions and lean on the coding parts for those scores instead.`;
+Use this response to genuinely assess communication and confidence for this part -
+don't just estimate those from the code. ${guidance}
+If unanswered, note that in suggestions and lean on the coding parts (if any) for those scores instead.`;
       }
 
       return `Part ${i + 1} - Coding problem

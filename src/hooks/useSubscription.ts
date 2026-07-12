@@ -11,7 +11,8 @@ export const useSubscription = () => {
       const { data, error } = await authClient.customer.state();
 
       if (error) {
-        throw new Error(error.message || "Failed to fetch subscription state");
+        // throw new Error(error.message || "Failed to fetch subscription state");
+        console.log(error.message)
       }
 
       return data;

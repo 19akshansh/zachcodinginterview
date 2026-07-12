@@ -7,7 +7,7 @@ import {
 } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { PAGINATION } from "@/config/constants";
+import { PAGINATION, LIMITS } from "@/config/constants";
 import { generateReportForInterview } from "@/lib/reportGeneration";
 import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
 import {
@@ -16,6 +16,7 @@ import {
   ProgrammingLanguage,
   SeniorityLevel,
   InterviewStatus,
+  INTERVIEW_TYPE_LABELS,
 } from "@/config/enums";
 
 export const interviewsRouter = createTRPCRouter({
@@ -27,11 +28,17 @@ export const interviewsRouter = createTRPCRouter({
           .trim()
           .max(80, "Keep the name under 80 characters")
           .optional(),
-        type: z.enum(InterviewType),
+        selections: z
+          .array(
+            z.object({
+              type: z.enum(InterviewType),
+              count: z.number().int().min(1).max(LIMITS.PRO_MAX_QUESTIONS),
+            }),
+          )
+          .min(1, "Select at least one interview type"),
         difficulty: z.enum(Difficulty),
         seniorityLevel: z.enum(SeniorityLevel),
         language: z.enum(ProgrammingLanguage).optional(),
-        numQuestions: z.number().int().min(1).max(6).default(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -49,18 +56,26 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      const numQuestions = Math.min(
-        input.numQuestions,
-        ctx.limits.maxQuestions,
+      const picks = Array.from(
+        input.selections
+          .reduce(
+            (map, s) => map.set(s.type, s),
+            new Map<InterviewType, { type: InterviewType; count: number }>(),
+          )
+          .values(),
       );
 
-      const picks: { type: InterviewType; count: number }[] =
-        input.type === InterviewType.CODING
-          ? [
-              { type: InterviewType.CODING, count: numQuestions },
-              { type: InterviewType.BEHAVIORAL, count: 1 },
-            ]
-          : [{ type: input.type, count: numQuestions }];
+      const totalRequested = picks.reduce((sum, p) => sum + p.count, 0);
+
+      if (totalRequested > ctx.limits.maxQuestions) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            ctx.limits.maxQuestions === LIMITS.PRO_MAX_QUESTIONS
+              ? `You can include up to ${ctx.limits.maxQuestions} questions in one interview.`
+              : `Free plan interviews allow up to ${ctx.limits.maxQuestions} question(s) total. Upgrade to PRO for up to ${LIMITS.PRO_MAX_QUESTIONS}.`,
+        });
+      }
 
       const questionIds: string[] = [];
 
@@ -68,19 +83,15 @@ export const interviewsRouter = createTRPCRouter({
         const matching = await prisma.question.findMany({
           where: {
             type: pick.type,
-            ...(pick.type === input.type
-              ? { difficulty: input.difficulty }
-              : {}),
+            difficulty: input.difficulty,
           },
           take: pick.count * 3,
         });
 
         if (matching.length === 0) {
-          if (pick.type === "BEHAVIORAL") continue;
           throw new TRPCError({
             code: "NOT_FOUND",
-            message:
-              "No matching questions are available yet. Please try a different difficulty.",
+            message: `No ${INTERVIEW_TYPE_LABELS[pick.type]} questions available at this difficulty yet. Please try a different difficulty.`,
           });
         }
 
@@ -100,7 +111,7 @@ export const interviewsRouter = createTRPCRouter({
       const interview = await prisma.interview.create({
         data: {
           title: input.title || undefined,
-          type: input.type,
+          type: picks[0].type,
           difficulty: input.difficulty,
           seniorityLevel: input.seniorityLevel,
           language: input.language,

@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Loader2,
+  LogOut,
+} from "lucide-react";
+import { useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,31 +21,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  LogOut,
-  MessageCircle,
-  Code2,
-  Check,
-  Loader2,
-} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { InterviewType, ProgrammingLanguage } from "@/config/enums";
 import { cn } from "@/lib/utils";
-import { ProgrammingLanguage } from "@/config/enums";
+import { useTRPC } from "@/trpc/client";
 import { useCountdown } from "../hooks/useCountdown";
 import {
   useEndInterview,
   type useSuspenseInterview,
 } from "../hooks/useInterviews";
+import { interviewTypeMeta, interviewTypeOptions } from "../types/typeOptions";
 import { SessionCodingPanel } from "./sessionCodingPanel";
-import { SessionBehavioralPanel } from "./sessionBehavioralPanel";
+import { SessionTextPanel } from "./sessionTextPanel";
 
 type InterviewData = ReturnType<typeof useSuspenseInterview>["data"];
 type InterviewQuestionData = InterviewData["questions"][number];
 
 const isAnswered = (iq: InterviewQuestionData) =>
-  iq.question.type === "BEHAVIORAL"
+  iq.question.type !== InterviewType.CODING
     ? Boolean(iq.behavioralAnswer?.trim())
     : iq.result === "PASSED" || iq.result === "PARTIAL";
 
@@ -68,12 +67,14 @@ export const InterviewSessionActive = ({
     },
   });
 
-  const codingCount = questions.filter(
-    (q) => q.question.type === "CODING",
-  ).length;
-  const behavioralCount = questions.filter(
-    (q) => q.question.type === "BEHAVIORAL",
-  ).length;
+  const typeCounts = questions.reduce<Partial<Record<InterviewType, number>>>(
+    (acc, q) => {
+      const t = q.question.type as InterviewType;
+      acc[t] = (acc[t] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
 
   const isLastQuestion = activeIndex === questions.length - 1;
 
@@ -92,26 +93,25 @@ export const InterviewSessionActive = ({
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-6">
       <div className="flex flex-wrap items-center gap-4 border-b pb-6">
-        <div className="flex items-center gap-3">
-          {behavioralCount > 0 && (
-            <Badge className="rounded-full px-4 py-1.5 flex gap-2 items-center">
-              <MessageCircle className="size-3.5" />
-              {behavioralCount} Behavioral question
-              {behavioralCount === 1 ? "" : "s"}
-            </Badge>
-          )}
-          {codingCount > 0 && (
-            <>
-              <div className="w-8 h-[1px] bg-border hidden sm:block" />
+        <div className="flex flex-wrap items-center gap-3">
+          {interviewTypeOptions.map((opt) => {
+            const count = typeCounts[opt.value];
+            if (!count) return null;
+            const isCoding = opt.value === InterviewType.CODING;
+            return (
               <Badge
-                variant="outline"
-                className="rounded-full px-4 py-1.5 flex gap-2 items-center text-muted-foreground"
+                key={opt.value}
+                variant={isCoding ? "outline" : "default"}
+                className={cn(
+                  "rounded-full px-4 py-1.5 flex gap-2 items-center",
+                  isCoding && "text-muted-foreground",
+                )}
               >
-                <Code2 className="size-3.5" />
-                {codingCount} Coding question{codingCount === 1 ? "" : "s"}
+                <opt.icon className="size-3.5" />
+                {count} {opt.label} question{count === 1 ? "" : "s"}
               </Badge>
-            </>
-          )}
+            );
+          })}
         </div>
 
         <div className="ml-auto flex items-center gap-4">
@@ -186,10 +186,12 @@ export const InterviewSessionActive = ({
               >
                 {answered && !isActive ? (
                   <Check className="size-3" />
-                ) : iq.question.type === "CODING" ? (
-                  <Code2 className="size-3" />
                 ) : (
-                  <MessageCircle className="size-3" />
+                  (() => {
+                    const TypeIcon =
+                      interviewTypeMeta[iq.question.type as InterviewType].icon;
+                    return <TypeIcon className="size-3" />;
+                  })()
                 )}
                 Q{index + 1}
               </button>
@@ -198,9 +200,7 @@ export const InterviewSessionActive = ({
         </div>
       )}
 
-      {activeQuestion.question.type === "BEHAVIORAL" ? (
-        <SessionBehavioralPanel interviewQuestion={activeQuestion} />
-      ) : (
+      {activeQuestion.question.type === InterviewType.CODING ? (
         <SessionCodingPanel
           interviewId={interview.id}
           interviewQuestion={activeQuestion}
@@ -209,6 +209,8 @@ export const InterviewSessionActive = ({
             ProgrammingLanguage.PYTHON
           }
         />
+      ) : (
+        <SessionTextPanel interviewQuestion={activeQuestion as any} />
       )}
 
       <div className="flex items-center justify-between pt-2 border-t">

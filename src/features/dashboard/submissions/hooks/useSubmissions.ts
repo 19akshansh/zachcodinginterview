@@ -1,7 +1,6 @@
-import { useTRPC } from "@/trpc/client";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-
+import { useTRPC } from "@/trpc/client";
 
 export const useRunCode = () => {
   const trpc = useTRPC();
@@ -48,11 +47,11 @@ export const useGetHint = () => {
   );
 };
 
-export const useSaveBehavioralAnswer = () => {
+export const useSaveTextAnswer = () => {
   const trpc = useTRPC();
 
   return useMutation(
-    trpc.submissions.saveBehavioralAnswer.mutationOptions({
+    trpc.submissions.saveTextAnswer.mutationOptions({
       onError: (error) => {
         toast.error(`Could not save your answer: ${error.message}`);
       },

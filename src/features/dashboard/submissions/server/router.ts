@@ -210,7 +210,7 @@ export const submissionsRouter = createTRPCRouter({
 
       return { hint: hintText, level: nextLevel, interviewQuestion: updated };
     }),
-  saveBehavioralAnswer: protectedProcedure
+  saveTextAnswer: protectedProcedure
     .input(
       z.object({
         interviewQuestionId: z.string(),

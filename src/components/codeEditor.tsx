@@ -37,6 +37,8 @@ export const CodeEditor = ({
 
   const handleMount: OnMount = (editor) => {
     editorRef.current = editor;
+    const textarea = editor.getDomNode()?.querySelector("textarea");
+    textarea?.setAttribute("spellcheck", "false");
   };
 
   const handleChange: OnChange = (nextValue) => {
