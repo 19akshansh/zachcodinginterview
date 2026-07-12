@@ -31,6 +31,7 @@ import {
   seniorityOptions,
 } from "../types/typeOptions";
 import { LIMITS } from "@/config/constants";
+import { toast } from "sonner";
 
 const MAX_QUESTIONS = LIMITS.PRO_MAX_QUESTIONS;
 const ALL_TYPES = interviewTypeOptions.map((opt) => opt.value);
@@ -162,7 +163,7 @@ export const InterviewForm = () => {
       {modal}
       <form
         onSubmit={form.handleSubmit(onSubmit, (errors) => {
-          console.log("Validation failed:", errors);
+          toast.error(`Validation failed: ${errors}`);
         })}
         className="space-y-8"
       >

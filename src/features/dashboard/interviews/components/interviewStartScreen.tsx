@@ -1,13 +1,15 @@
 "use client";
 
+import { Clock, Loader2, PlayCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Code2, MessageCircle, PlayCircle, Clock, Loader2 } from "lucide-react";
+import { InterviewType } from "@/config/enums";
 import {
   useStartInterview,
   type useSuspenseInterview,
 } from "../hooks/useInterviews";
+import { interviewTypeOptions } from "../types/typeOptions";
 
 type InterviewData = ReturnType<typeof useSuspenseInterview>["data"];
 
@@ -18,12 +20,13 @@ export const InterviewStartScreen = ({
 }) => {
   const startInterview = useStartInterview();
 
-  const codingCount = interview.questions.filter(
-    (q) => q.question.type === "CODING",
-  ).length;
-  const behavioralCount = interview.questions.filter(
-    (q) => q.question.type === "BEHAVIORAL",
-  ).length;
+  const typeCounts = interview.questions.reduce<
+    Partial<Record<InterviewType, number>>
+  >((acc, q) => {
+    const t = q.question.type as InterviewType;
+    acc[t] = (acc[t] ?? 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="flex flex-1 items-center justify-center">
@@ -39,21 +42,21 @@ export const InterviewStartScreen = ({
         </div>
 
         <div className="flex flex-wrap justify-center gap-2">
-          {behavioralCount > 0 && (
-            <Badge className="rounded-full px-4 py-1.5 flex gap-2 items-center">
-              <MessageCircle className="size-3.5" />
-              {behavioralCount} Behavioral
-            </Badge>
-          )}
-          {codingCount > 0 && (
-            <Badge
-              variant="outline"
-              className="rounded-full px-4 py-1.5 flex gap-2 items-center"
-            >
-              <Code2 className="size-3.5" />
-              {codingCount} Coding
-            </Badge>
-          )}
+          {interviewTypeOptions.map((opt) => {
+            const count = typeCounts[opt.value];
+            if (!count) return null;
+            const isCoding = opt.value === InterviewType.CODING;
+            return (
+              <Badge
+                key={opt.value}
+                variant={isCoding ? "outline" : "default"}
+                className="rounded-full px-4 py-1.5 flex gap-2 items-center"
+              >
+                <opt.icon className="size-3.5" />
+                {count} {opt.label}
+              </Badge>
+            );
+          })}
           <Badge
             variant="outline"
             className="rounded-full px-4 py-1.5 flex gap-2 items-center text-muted-foreground"

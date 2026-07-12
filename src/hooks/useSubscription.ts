@@ -12,7 +12,6 @@ export const useSubscription = () => {
 
       if (error) {
         // throw new Error(error.message || "Failed to fetch subscription state");
-        console.log(error.message)
       }
 
       return data;
