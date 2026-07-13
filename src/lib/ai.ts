@@ -119,6 +119,57 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
   return output;
 }
 
+export interface AIPracticeGradeInput {
+  questionTitle: string;
+  questionPrompt: string;
+  interviewType: InterviewType;
+  answer: string;
+}
+
+export interface AIPracticeGradeOutput {
+  result: "PASSED" | "PARTIAL" | "FAILED";
+  feedback: string;
+}
+
+const practiceGradeSchema = z.object({
+  result: z.enum(["PASSED", "PARTIAL", "FAILED"]),
+  feedback: z.string(),
+});
+
+export async function evaluateTextAnswer(
+  input: AIPracticeGradeInput,
+): Promise<AIPracticeGradeOutput> {
+  const label = INTERVIEW_TYPE_LABELS[input.interviewType];
+  const guidance =
+    input.interviewType === InterviewType.SYSTEM_DESIGN
+      ? "Judge structured trade-off analysis, scalability reasoning, and clarity of the proposed architecture."
+      : "Judge structure (ideally STAR-style), specificity, and clarity of the situation and outcome described.";
+
+  const { output } = await generateText({
+    model,
+    output: Output.object({ schema: practiceGradeSchema }),
+    prompt: `You are a senior interviewer grading a candidate's standalone practice answer for a ${label} question. Be fair but rigorous - this is practice, so give actionable feedback.
+
+Question: ${input.questionTitle}
+${input.questionPrompt}
+
+Candidate's answer:
+${input.answer}
+
+${guidance}
+
+Assign:
+- "PASSED" if the answer is strong and addresses the question well
+- "PARTIAL" if it's on the right track but missing depth, structure, or key considerations
+- "FAILED" if it's vague, off-topic, or missing entirely
+
+Respond ONLY with valid JSON, no markdown fences, matching exactly:
+{ "result": "PASSED" | "PARTIAL" | "FAILED", "feedback": string (2-4 sentences, specific and actionable) }`,
+  });
+
+  return output;
+}
+
 export interface AIHintInput {
   questionTitle: string;
   questionPrompt: string;

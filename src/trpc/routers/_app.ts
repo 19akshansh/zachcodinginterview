@@ -5,8 +5,10 @@ import { submissionsRouter } from "@/features/dashboard/submissions/server/route
 import { reportsRouter } from "@/features/dashboard/reports/server/router";
 import { usersRouter } from "@/features/dashboard/users/server/router";
 import { recruitersRouter } from "@/features/dashboard/recruiters/server/router";
+import { practiceRouter } from "@/features/dashboard/practice/server/router";
 export const appRouter = createTRPCRouter({
   interviews: interviewsRouter,
+  practice: practiceRouter,
   questions: questionsRouter,
   submissions: submissionsRouter,
   reports: reportsRouter,
