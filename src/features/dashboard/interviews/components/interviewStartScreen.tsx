@@ -45,11 +45,10 @@ export const InterviewStartScreen = ({
           {interviewTypeOptions.map((opt) => {
             const count = typeCounts[opt.value];
             if (!count) return null;
-            const isCoding = opt.value === InterviewType.CODING;
             return (
               <Badge
                 key={opt.value}
-                variant={isCoding ? "outline" : "default"}
+                variant="default"
                 className="rounded-full px-4 py-1.5 flex gap-2 items-center"
               >
                 <opt.icon className="size-3.5" />

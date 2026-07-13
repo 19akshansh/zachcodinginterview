@@ -2,12 +2,14 @@
 
 import { Check, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULTS } from "@/config/constants";
 import type { InterviewType } from "@/config/enums";
 import { useSaveTextAnswer } from "@/features/dashboard/submissions/hooks/useSubmissions";
+import { useTRPC } from "@/trpc/client";
 import { interviewTypeMeta } from "../types/typeOptions";
 
 const AUTOSAVE_DELAY_MS = DEFAULTS.AUTOSAVE_DELAY_MS;
@@ -24,10 +26,15 @@ interface InterviewQuestionText {
 }
 
 export const SessionTextPanel = ({
+  interviewId,
   interviewQuestion,
 }: {
+  interviewId: string;
   interviewQuestion: InterviewQuestionText;
 }) => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
   const [answer, setAnswer] = useState(
     interviewQuestion.behavioralAnswer ?? "",
   );
@@ -50,7 +57,16 @@ export const SessionTextPanel = ({
       if (!answer.trim()) return;
       saveAnswer.mutate(
         { interviewQuestionId: interviewQuestion.id, answer },
-        { onSuccess: () => setSavedAnswer(answer) },
+        {
+          onSuccess: () => {
+            setSavedAnswer(answer);
+            queryClient.invalidateQueries({
+              queryKey: trpc.interviews.getOne.queryOptions({
+                id: interviewId,
+              }).queryKey,
+            });
+          },
+        },
       );
     }, AUTOSAVE_DELAY_MS);
 

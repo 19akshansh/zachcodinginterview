@@ -6,7 +6,7 @@ import { InterviewType, INTERVIEW_TYPE_LABELS, Verdict } from "@/config/enums";
 import type { TestCaseExecutionResult } from "@/lib/codeExecution";
 
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
-const model = google("gemini-3.0-flash");
+const model = google("gemini-3.5-flash");
 
 export const reportSchema = z.object({
   overallScore: z.number().min(0).max(100),

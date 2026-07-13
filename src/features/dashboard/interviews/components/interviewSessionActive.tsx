@@ -97,15 +97,11 @@ export const InterviewSessionActive = ({
           {interviewTypeOptions.map((opt) => {
             const count = typeCounts[opt.value];
             if (!count) return null;
-            const isCoding = opt.value === InterviewType.CODING;
             return (
               <Badge
                 key={opt.value}
-                variant={isCoding ? "outline" : "default"}
-                className={cn(
-                  "rounded-full px-4 py-1.5 flex gap-2 items-center",
-                  isCoding && "text-muted-foreground",
-                )}
+                variant="default"
+                className="rounded-full px-4 py-1.5 flex gap-2 items-center"
               >
                 <opt.icon className="size-3.5" />
                 {count} {opt.label} question{count === 1 ? "" : "s"}
@@ -210,7 +206,10 @@ export const InterviewSessionActive = ({
           }
         />
       ) : (
-        <SessionTextPanel interviewQuestion={activeQuestion as any} />
+        <SessionTextPanel
+          interviewId={interview.id}
+          interviewQuestion={activeQuestion as any}
+        />
       )}
 
       <div className="flex items-center justify-between pt-2 border-t">
