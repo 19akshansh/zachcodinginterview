@@ -102,12 +102,14 @@ export const proProcedure = protectedProcedure.use(async ({ ctx, next }) => {
             practice: LIMITS.PRO_PRACTICE,
             interviewLimitMinutes: LIMITS.PRO_INTERVIEW_LIMIT_MINUTES,
             maxQuestions: LIMITS.PRO_MAX_QUESTIONS,
+            practiceAccessPercent: LIMITS.PRO_PRACTICE_ACCESS_PERCENT,
           }
         : {
             interviews: LIMITS.FREE_INTERVIEWS,
             practice: LIMITS.FREE_PRACTICE,
             interviewLimitMinutes: LIMITS.FREE_INTERVIEW_LIMIT_MINUTES,
             maxQuestions: LIMITS.FREE_MAX_QUESTIONS,
+            practiceAccessPercent: LIMITS.FREE_PRACTICE_ACCESS_PERCENT,
           },
       hasPro,
     },

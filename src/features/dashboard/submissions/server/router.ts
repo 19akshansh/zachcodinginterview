@@ -13,8 +13,7 @@ import {
 } from "@/lib/codeExecution";
 import { generateHint } from "@/lib/ai";
 import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
-
-const MAX_HINT_LEVEL = 3;
+import { DEFAULTS } from "@/config/constants";
 
 async function loadActiveInterviewQuestion(
   interviewQuestionId: string,
@@ -181,7 +180,7 @@ export const submissionsRouter = createTRPCRouter({
 
       const currentLevel = interviewQuestion.hintLevel ?? 0;
 
-      if (currentLevel >= MAX_HINT_LEVEL) {
+      if (currentLevel >= DEFAULTS.MAX_HINT_LEVEL) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "Maximum hints used for this problem.",

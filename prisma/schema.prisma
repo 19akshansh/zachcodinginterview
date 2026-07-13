@@ -131,6 +131,7 @@ model User {
 
   interviews         Interview[] @relation("CandidateInterviews")
   assignedInterviews Interview[] @relation("RecruiterAssignedInterviews")
+  practiceAttempts   PracticeAttempt[]
 
   sentInvites     RecruiterInvite[] @relation("SentInvites")
   receivedInvites RecruiterInvite[] @relation("ReceivedInvites")
@@ -215,6 +216,7 @@ model Question {
 
   interviewQuestions InterviewQuestion[]
   testCases           TestCase[]
+  practiceAttempts    PracticeAttempt[]
 
   @@index([type])
   @@index([difficulty])
@@ -266,9 +268,36 @@ model Interview {
   @@map("interview")
 }
 
-// One row per question attached to an interview - this is what lets a
-// single interview hold several coding/behavioral questions, each with
-// its own answer, code, execution result and hints.
+model PracticeAttempt {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  code             String?
+  language         ProgrammingLanguage?
+  behavioralAnswer String?
+
+  result          SubmissionResult?
+  aiFeedback      String?
+  passedTestCases Int?
+  totalTestCases  Int?
+  executionTimeMs Int?
+  memoryUsedKb    Int?
+
+  hints     String[] @default([])
+  hintLevel Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, questionId])
+  @@index([userId])
+  @@index([questionId])
+  @@map("practice_attempt")
+}
+
 model InterviewQuestion {
   id          String    @id @default(cuid())
   interviewId String

@@ -131,3 +131,11 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   [Verdict.NO_HIRE]: "No Hire",
   [Verdict.STRONG_NO_HIRE]: "Strong No Hire",
 };
+
+export const PRACTICE_TYPES = [
+  InterviewType.CODING,
+  InterviewType.SYSTEM_DESIGN,
+  InterviewType.BEHAVIORAL,
+] as const;
+
+export type PracticeType = (typeof PRACTICE_TYPES)[number];

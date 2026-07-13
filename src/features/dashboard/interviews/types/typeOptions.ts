@@ -1,4 +1,5 @@
 import {
+  Building2,
   Code2,
   Crown,
   Feather,
@@ -8,6 +9,7 @@ import {
   Medal,
   MessageSquare,
   Network,
+  Rocket,
   ShieldCheck,
   Sprout,
   TrendingUp,
@@ -24,6 +26,7 @@ import {
   SiTypescript,
 } from "react-icons/si";
 import {
+  CompanyTier,
   Difficulty,
   INTERVIEW_TYPE_LABELS,
   InterviewType,
@@ -104,6 +107,24 @@ export const seniorityOptions = [
   {
     value: SeniorityLevel.PRINCIPAL,
     label: "Principal",
+    icon: Crown,
+  },
+];
+
+export const companyTierOptions = [
+  {
+    value: CompanyTier.STARTUP,
+    label: "Startup",
+    icon: Rocket,
+  },
+  {
+    value: CompanyTier.MID_MARKET,
+    label: "Mid-Market",
+    icon: Building2,
+  },
+  {
+    value: CompanyTier.FAANG,
+    label: "FAANG",
     icon: Crown,
   },
 ];
