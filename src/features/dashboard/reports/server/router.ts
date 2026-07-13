@@ -9,6 +9,47 @@ import { Verdict } from "@/config/enums";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { InterviewReportPDF } from "@/lib/pdfTemplate";
 import { uploadReportPdf } from "@/lib/storage";
+import { generateReportForInterview } from "@/lib/reportGeneration";
+
+async function generateAndStoreReportPdf(reportId: string) {
+  const report = await prisma.report.findUnique({
+    where: { id: reportId },
+    include: {
+      interview: {
+        include: {
+          candidate: { select: { name: true } },
+          questions: {
+            orderBy: { order: "asc" },
+            take: 1,
+            select: {
+              question: { select: { title: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!report) throw new TRPCError({ code: "NOT_FOUND" });
+
+  const buffer = await renderToBuffer(
+    React.createElement(InterviewReportPDF, {
+      report,
+      candidateName: report.interview.candidate.name,
+      questionTitle:
+        report.interview.title ||
+        report.interview.questions[0]?.question.title ||
+        "Technical Interview",
+    }),
+  );
+
+  const pdfUrl = await uploadReportPdf(report.id, buffer);
+
+  return prisma.report.update({
+    where: { id: report.id },
+    data: { pdfUrl },
+  });
+}
 
 export const reportsRouter = createTRPCRouter({
   generate: protectedProcedure
@@ -50,6 +91,53 @@ export const reportsRouter = createTRPCRouter({
           topicScores: data.topicScores as Prisma.InputJsonValue,
         },
       });
+    }),
+  regenerateForInterview: protectedProcedure
+    .input(z.object({ interviewId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const interview = await prisma.interview.findUnique({
+        where: { id: input.interviewId },
+        select: {
+          candidateId: true,
+          assignedByRecruiterId: true,
+          status: true,
+        },
+      });
+
+      if (!interview) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Interview not found",
+        });
+      }
+
+      const isOwner = interview.candidateId === ctx.auth.user.id;
+      const isAssignedRecruiter =
+        interview.assignedByRecruiterId === ctx.auth.user.id;
+      const isAdmin = ctx.auth.user.role === "ADMIN";
+
+      if (!isOwner && !isAssignedRecruiter && !isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN" });
+      }
+
+      if (interview.status !== "COMPLETED") {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Interview has not been completed yet.",
+        });
+      }
+
+      const report = await generateReportForInterview(input.interviewId);
+
+      if (!report) {
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "We couldn't generate a report for this interview. Please try again shortly.",
+        });
+      }
+
+      return report;
     }),
   getOne: protectedProcedure
     .input(z.object({ id: z.string() }))
@@ -96,19 +184,44 @@ export const reportsRouter = createTRPCRouter({
           .min(1)
           .max(100)
           .default(PAGINATION.DEFAULT_PAGE_SIZE),
+        search: z.string().default(""),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { page, pageSize } = input;
+      const { page, pageSize, search } = input;
       const { user } = ctx.auth;
 
-      let where: Prisma.ReportWhereInput = {};
+      let roleFilter: Prisma.InterviewWhereInput = {};
 
       if (user.role === "CANDIDATE") {
-        where = { interview: { candidateId: user.id } };
+        roleFilter = { candidateId: user.id };
       } else if (user.role === "RECRUITER") {
-        where = { interview: { assignedByRecruiterId: user.id } };
+        roleFilter = { assignedByRecruiterId: user.id };
       }
+
+      const searchFilter: Prisma.InterviewWhereInput = search
+        ? {
+            OR: [
+              { title: { contains: search, mode: "insensitive" } },
+              {
+                questions: {
+                  some: {
+                    question: {
+                      title: { contains: search, mode: "insensitive" },
+                    },
+                  },
+                },
+              },
+              {
+                candidate: { name: { contains: search, mode: "insensitive" } },
+              },
+            ],
+          }
+        : {};
+
+      const where: Prisma.ReportWhereInput = {
+        interview: { ...roleFilter, ...searchFilter },
+      };
 
       const [items, totalCount] = await Promise.all([
         prisma.report.findMany({
@@ -121,6 +234,7 @@ export const reportsRouter = createTRPCRouter({
               select: {
                 type: true,
                 title: true,
+                candidate: { select: { name: true, image: true } },
                 questions: {
                   orderBy: { order: "asc" },
                   take: 1,
@@ -135,11 +249,15 @@ export const reportsRouter = createTRPCRouter({
         prisma.report.count({ where }),
       ]);
 
+      const totalPages = Math.ceil(totalCount / pageSize);
+
       return {
         items,
+        page,
+        pageSize,
         totalCount,
-        totalPages: Math.ceil(totalCount / pageSize),
-        hasNextPage: page * pageSize < totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
         hasPrevPage: page > 1,
       };
     }),
