@@ -11,6 +11,46 @@ import { InterviewReportPDF } from "@/lib/pdfTemplate";
 import { uploadReportPdf } from "@/lib/storage";
 import { generateReportForInterview } from "@/lib/reportGeneration";
 
+async function generateAndStoreReportPdf(reportId: string) {
+  const report = await prisma.report.findUnique({
+    where: { id: reportId },
+    include: {
+      interview: {
+        include: {
+          candidate: { select: { name: true } },
+          questions: {
+            orderBy: { order: "asc" },
+            take: 1,
+            select: {
+              question: { select: { title: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!report) throw new TRPCError({ code: "NOT_FOUND" });
+
+  const buffer = await renderToBuffer(
+    React.createElement(InterviewReportPDF, {
+      report,
+      candidateName: report.interview.candidate.name,
+      questionTitle:
+        report.interview.title ||
+        report.interview.questions[0]?.question.title ||
+        "Technical Interview",
+    }),
+  );
+
+  const pdfUrl = await uploadReportPdf(report.id, buffer);
+
+  return prisma.report.update({
+    where: { id: report.id },
+    data: { pdfUrl },
+  });
+}
+
 export const reportsRouter = createTRPCRouter({
   generate: protectedProcedure
     .input(
@@ -57,11 +97,18 @@ export const reportsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const interview = await prisma.interview.findUnique({
         where: { id: input.interviewId },
-        select: { candidateId: true, assignedByRecruiterId: true, status: true },
+        select: {
+          candidateId: true,
+          assignedByRecruiterId: true,
+          status: true,
+        },
       });
 
       if (!interview) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Interview not found" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Interview not found",
+        });
       }
 
       const isOwner = interview.candidateId === ctx.auth.user.id;
