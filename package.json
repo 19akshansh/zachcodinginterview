@@ -1,6 +1,6 @@
 {
   "name": "zachcodinginterview",
-  "version": "0.4.9",
+  "version": "0.5.9",
   "private": true,
   "scripts": {
     "dev": "next dev",
