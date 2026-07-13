@@ -154,7 +154,7 @@ export const InterviewItem = ({ data }: { data: any }) => {
           </span>
         </div>
       );
-    }
+  }
 
     const statusStyles: Record<string, string> = {
       SCHEDULED: "bg-primary/10 text-primary border-primary/20",

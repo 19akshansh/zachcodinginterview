@@ -2,13 +2,25 @@
 
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Sparkles, Trophy, FileText } from "lucide-react";
+import {
+  AlertTriangle,
+  Loader2,
+  Sparkles,
+  Trophy,
+  FileText,
+} from "lucide-react";
 import Link from "next/link";
 import { VERDICT_LABELS } from "@/config/enums";
 import type { useSuspenseInterview } from "../hooks/useInterviews";
+import { useRegenerateReport } from "@/features/dashboard/reports/hooks/useReports";
+
+// Stop polling after this many attempts (~2 minutes at 4s intervals) and
+// show a retry option instead of spinning forever.
+const MAX_POLL_ATTEMPTS = 30;
 
 type InterviewData = ReturnType<typeof useSuspenseInterview>["data"];
 
@@ -26,19 +38,74 @@ export const InterviewCompletedScreen = ({
   interview: InterviewData;
 }) => {
   const trpc = useTRPC();
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const regenerate = useRegenerateReport();
 
   const { data } = useQuery({
     ...trpc.interviews.getOne.queryOptions({ id: interview.id }),
     initialData: interview,
-    refetchInterval: (query) => (query.state.data?.report ? false : 4000),
+    refetchInterval: (query) => {
+      if (query.state.data?.report) return false;
+      if (pollAttempts >= MAX_POLL_ATTEMPTS) return false;
+      return 4000;
+    },
+    refetchIntervalInBackground: true,
   });
 
   const report = data.report;
+  const hasTimedOut = !report && pollAttempts >= MAX_POLL_ATTEMPTS;
+
+  // Track how many times we've polled without getting a report back.
+  useEffect(() => {
+    if (report || pollAttempts >= MAX_POLL_ATTEMPTS) return;
+    const timer = setTimeout(() => setPollAttempts((n) => n + 1), 4000);
+    return () => clearTimeout(timer);
+  }, [report, pollAttempts]);
+
+  const handleRetry = () => {
+    setPollAttempts(0);
+    regenerate.mutate({ interviewId: interview.id });
+  };
 
   return (
     <div className="flex flex-1 items-center justify-center">
       <Card className="max-w-lg w-full p-8 text-center space-y-6">
-        {!report ? (
+        {hasTimedOut ? (
+          <>
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-destructive/10">
+              <AlertTriangle className="size-6 text-destructive" />
+            </div>
+            <div className="space-y-2">
+              <h1 className="text-xl font-bold">
+                Report generation is taking longer than expected
+              </h1>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                This can happen during a temporary outage. You can try
+                generating it again.
+              </p>
+            </div>
+            <Button
+              size="lg"
+              className="w-full font-bold"
+              disabled={regenerate.isPending}
+              onClick={handleRetry}
+            >
+              {regenerate.isPending ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Retrying...
+                </>
+              ) : (
+                "Try again"
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full"
+              render={<Link href="/interviews">Back to interviews</Link>}
+            />
+          </>
+        ) : !report ? (
           <>
             <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10">
               <Sparkles className="size-6 text-primary animate-pulse" />
