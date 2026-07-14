@@ -1,4 +1,4 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createTRPCRouter, proProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
@@ -17,8 +17,8 @@ import {
   isExecutableLanguage,
   runAgainstTestCases,
   summarizeResults,
-} from "@/lib/codeExecution";
-import { generateHint, evaluateTextAnswer } from "@/lib/ai";
+} from "@/helpers/codeExecution";
+import { generateHint, evaluateTextAnswer } from "@/helpers/ai";
 import { PRACTICE_TYPES } from "@/config/enums";
 import { DEFAULTS } from "@/config/constants";
 

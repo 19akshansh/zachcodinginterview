@@ -1,4 +1,4 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";

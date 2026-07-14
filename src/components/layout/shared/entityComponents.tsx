@@ -7,10 +7,10 @@ import {
   SearchIcon,
   TrashIcon,
 } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../../ui/button";
 import Link from "next/link";
 import React, { ReactNode } from "react";
-import { Input } from "./ui/input";
+import { Input } from "../../ui/input";
 import {
   Empty,
   EmptyContent,
@@ -18,15 +18,15 @@ import {
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-} from "./ui/empty";
-import { cn } from "@/lib/utils";
-import { Card, CardContent, CardDescription, CardTitle } from "./ui/card";
+} from "../../ui/empty";
+import { cn } from "@/lib/others/utils";
+import { Card, CardContent, CardDescription, CardTitle } from "../../ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+} from "../../ui/dropdown-menu";
 
 type EntityHeaderProps = {
   title: string;

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { authClient } from "@/lib/authClient";
+import { authClient } from "@/lib/auth/client";
 
 export const useSubscription = () => {
   const { data: session, isPending: isAuthLoading } = authClient.useSession();

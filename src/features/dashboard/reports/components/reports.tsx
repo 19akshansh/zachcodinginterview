@@ -13,8 +13,8 @@ import {
   EntitySearch,
   ErrorView,
   LoadingView,
-} from "@/components/entityComponents";
-import { RelativeTime } from "@/components/relativeTime";
+} from "@/components/layout/shared/entityComponents";
+import { RelativeTime } from "@/components/layout/shared/relativeTime";
 import { Badge } from "@/components/ui/badge";
 import { INTERVIEW_TYPE_LABELS, VERDICT_LABELS, Verdict } from "@/config/enums";
 import { useEntitySearch } from "@/hooks/useEntitySearch";

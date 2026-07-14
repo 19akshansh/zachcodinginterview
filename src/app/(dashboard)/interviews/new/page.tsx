@@ -1,4 +1,4 @@
-import { requireAuth } from "@/lib/authUtils";
+import { requireAuth } from "@/lib/auth/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";

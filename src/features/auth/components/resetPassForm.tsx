@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/authClient";
+import { authClient } from "@/lib/auth/client";
 
 const resetPassSchema = z.object({
   password: z.string().min(6, "Password should be of minimum 6 letters."),

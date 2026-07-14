@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import { RelativeTime } from "@/components/relativeTime";
+import { RelativeTime } from "@/components/layout/shared/relativeTime";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

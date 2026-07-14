@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { authClient } from "@/lib/authClient";
+import { authClient } from "@/lib/auth/client";
 import { toast } from "sonner";
 
 interface UpgradeModalProps {

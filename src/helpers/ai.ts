@@ -3,7 +3,7 @@ import { generateText, Output } from "ai";
 import { z } from "zod";
 import { envSchem } from "@/config/envSchema";
 import { InterviewType, INTERVIEW_TYPE_LABELS, Verdict } from "@/config/enums";
-import type { TestCaseExecutionResult } from "@/lib/codeExecution";
+import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
 const model = google("gemini-3.5-flash");
@@ -11,7 +11,7 @@ const model = google("gemini-3.5-flash");
 export const reportSchema = z.object({
   overallScore: z.number().min(0).max(100),
   communication: z.number().min(0).max(100),
-problemSolving: z.number().min(0).max(100),
+  problemSolving: z.number().min(0).max(100),
   codeQuality: z.number().min(0).max(100),
   optimization: z.number().min(0).max(100),
   cleanliness: z.number().min(0).max(100),

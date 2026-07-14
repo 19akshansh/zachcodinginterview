@@ -1,5 +1,5 @@
 import { SigninForm } from "@/features/auth/components/signinForm";
-import { requireUnAuth } from "@/lib/authUtils";
+import { requireUnAuth } from "@/lib/auth/utils";
 
 const Page = async () => {
   await requireUnAuth();

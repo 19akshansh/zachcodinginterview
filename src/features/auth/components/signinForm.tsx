@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { authClient } from "@/lib/authClient";
+import { authClient } from "@/lib/auth/client";
 import { useEffect, useRef, useState } from "react";
 
 const signinSchema = z.object({

@@ -1,4 +1,4 @@
-import { requireRecruiter } from "@/lib/authUtils";
+import { requireRecruiter } from "@/lib/auth/utils";
 
 const Page = async () => {
   await requireRecruiter();

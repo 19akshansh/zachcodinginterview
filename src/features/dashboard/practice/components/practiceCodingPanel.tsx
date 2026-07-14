@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CodeEditor } from "@/components/codeEditor";
+import { CodeEditor } from "@/components/layout/individual/codeEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,7 +20,7 @@ import {
   Sparkles,
   Lock,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import { ProgrammingLanguage } from "@/config/enums";
 import { languageOptions } from "../../interviews/types/typeOptions";
 import {
@@ -28,7 +28,7 @@ import {
   useRunPracticeCode,
   useSubmitPracticeCode,
 } from "../hooks/usePractice";
-import type { TestCaseExecutionResult } from "@/lib/codeExecution";
+import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
 const EXECUTABLE_LANGUAGES = languageOptions.filter((l) => !l.disabled);
 

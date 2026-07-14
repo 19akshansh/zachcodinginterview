@@ -28,16 +28,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
-} from "./ui/sidebar";
+} from "../../ui/sidebar";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { authClient } from "@/lib/authClient";
+import { cn } from "@/lib/others/utils";
+import { authClient } from "@/lib/auth/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHasActivePROSubscription } from "@/hooks/useSubscription";
-import { Button } from "./ui/button";
+import { Button } from "../../ui/button";
 
 type UserRole = "CANDIDATE" | "RECRUITER" | "ADMIN";
 

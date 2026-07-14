@@ -3,7 +3,7 @@
 import Editor, { type OnMount, type OnChange } from "@monaco-editor/react";
 import { useRef } from "react";
 import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import { ProgrammingLanguage } from "@/config/enums";
 
 const MONACO_LANGUAGE_IDS: Record<ProgrammingLanguage, string> = {

@@ -1,4 +1,4 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
 import {
   createTRPCRouter,
@@ -8,8 +8,8 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION, LIMITS } from "@/config/constants";
-import { generateReportForInterview } from "@/lib/reportGeneration";
-import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
+import { generateReportForInterview } from "@/helpers/reportGeneration";
+import { autoEndIfExpired } from "@/helpers/interviewTimeLimit";
 import {
   InterviewType,
   Difficulty,

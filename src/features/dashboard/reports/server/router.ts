@@ -1,12 +1,12 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
 import { Verdict } from "@/config/enums";
-import { generateReportForInterview } from "@/lib/reportGeneration";
-import { generateAndStoreReportPdf } from "@/lib/reportPdf";
+import { generateReportForInterview } from "@/helpers/reportGeneration";
+import { generateAndStoreReportPdf } from "@/helpers/reportPdf";
 
 export const reportsRouter = createTRPCRouter({
   generate: protectedProcedure

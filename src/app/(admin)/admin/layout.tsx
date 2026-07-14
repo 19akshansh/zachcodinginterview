@@ -1,8 +1,8 @@
-import { AppHeader } from "@/components/appHeader";
-import { AppSidebar } from "@/components/appSidebar";
+import { AppHeader } from "@/components/layout/shared/appHeader";
+import { AppSidebar } from "@/components/layout/shared/appSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { envSchem } from "@/config/envSchema";
-import { requireAdmin } from "@/lib/authUtils";
+import { requireAdmin } from "@/lib/auth/utils";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {

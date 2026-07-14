@@ -1,5 +1,5 @@
 import { envSchem } from "@/config/envSchema";
-import { polarClient } from "@/lib/polar";
+import { polarClient } from "@/lib/billing/polar";
 
 type SubscriptionStatus = "PRO" | "FREE" | "UNKNOWN";
 

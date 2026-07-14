@@ -11,7 +11,7 @@ import {
   ErrorView,
   EmptyView,
   EntityList,
-} from "@/components/entityComponents";
+} from "@/components/layout/shared/entityComponents";
 import { useSuspensePractice } from "../hooks/usePractice";
 import { usePracticeParams } from "../hooks/usePracticeParams";
 import { useEntitySearch } from "@/hooks/useEntitySearch";
@@ -23,7 +23,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import {
   interviewTypeOptions,
   difficultyOptions,

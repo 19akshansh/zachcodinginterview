@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTRPC } from "@/trpc/client";
-import { CodeEditor } from "@/components/codeEditor";
+import { CodeEditor } from "@/components/layout/individual/codeEditor";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -22,7 +22,7 @@ import {
   Sparkles,
   Lock,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import { ProgrammingLanguage } from "@/config/enums";
 import { languageOptions } from "../types/typeOptions";
 import {
@@ -30,7 +30,7 @@ import {
   useRunCode,
   useSubmitCode,
 } from "@/features/dashboard/submissions/hooks/useSubmissions";
-import type { TestCaseExecutionResult } from "@/lib/codeExecution";
+import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
 const EXECUTABLE_LANGUAGES = languageOptions.filter((l) => !l.disabled);
 

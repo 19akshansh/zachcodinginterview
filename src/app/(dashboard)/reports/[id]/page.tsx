@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ReportDetailsClient } from "@/features/dashboard/reports/components/reportDetailsClient";
-import { requireAuth } from "@/lib/authUtils";
+import { requireAuth } from "@/lib/auth/utils";
 import { getQueryClient, HydrateClient, trpc } from "@/trpc/server";
 
 interface PageProps {

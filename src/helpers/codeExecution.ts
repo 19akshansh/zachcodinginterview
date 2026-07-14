@@ -3,7 +3,7 @@ import {
   ProgrammingLanguage,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
-import { EntryPointResolutionError, wrapWithHarness } from "@/lib/testHarness";
+import { EntryPointResolutionError, wrapWithHarness } from "@/helpers/testHarness";
 
 const CODESERVER_LANGUAGE_IDS: Partial<Record<ProgrammingLanguage, string>> =
   {

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { useCreateInterview } from "../hooks/useInterviews";
 import { useUpgradeModal } from "@/hooks/useUpgradeModal";
 import { Loader2, PlayCircle, Minus, Plus, CheckCheck } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import { useRouter } from "next/navigation";
 import {
   Difficulty,
@@ -90,7 +90,7 @@ export const InterviewForm = () => {
     const isSelected = types.includes(value);
 
     if (isSelected) {
-      if (types.length === 1) return; 
+      if (types.length === 1) return;
       form.setValue(
         "types",
         types.filter((t) => t !== value),

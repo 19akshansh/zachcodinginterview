@@ -1,8 +1,8 @@
 import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
-import prisma from "@/lib/db";
-import { InterviewReportPDF } from "@/lib/pdfTemplate";
-import { uploadReportPdf } from "@/lib/storage";
+import prisma from "@/lib/db/db";
+import { InterviewReportPDF } from "@/helpers/pdfTemplate";
+import { uploadReportPdf } from "@/helpers/storage";
 
 export async function generateAndStoreReportPdf(reportId: string) {
   const report = await prisma.report.findUnique({

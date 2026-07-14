@@ -1,5 +1,5 @@
-import prisma from "@/lib/db";
-import { generateReportForInterview } from "@/lib/reportGeneration";
+import prisma from "@/lib/db/db";
+import { generateReportForInterview } from "@/helpers/reportGeneration";
 
 export async function autoEndIfExpired<
   T extends {

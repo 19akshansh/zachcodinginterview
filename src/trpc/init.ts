@@ -1,8 +1,8 @@
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/server";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
-import { getSubscriptionStatus } from "@/lib/subscriptions";
+import { getSubscriptionStatus } from "@/lib/billing/subscriptions";
 import { LIMITS } from "@/config/constants";
 
 export const createTRPCContext = cache(async (opts: { headers: Headers }) => {

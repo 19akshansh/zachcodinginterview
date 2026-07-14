@@ -1,4 +1,4 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -10,9 +10,9 @@ import {
   isExecutableLanguage,
   runAgainstTestCases,
   summarizeResults,
-} from "@/lib/codeExecution";
-import { generateHint } from "@/lib/ai";
-import { autoEndIfExpired } from "@/lib/interviewTimeLimit";
+} from "@/helpers/codeExecution";
+import { generateHint } from "@/helpers/ai";
+import { autoEndIfExpired } from "@/helpers/interviewTimeLimit";
 import { DEFAULTS } from "@/config/constants";
 
 async function loadActiveInterviewQuestion(

@@ -1,10 +1,10 @@
-import { checkAuth } from "@/lib/authUtils";
+import { checkAuth } from "@/lib/auth/utils";
 import { getQueryClient, trpc } from "@/trpc/server";
 import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/appSidebar";
-import { AppHeader } from "@/components/appHeader";
-import LandingPage from "@/components/landingPage";
+import { AppSidebar } from "@/components/layout/shared/appSidebar";
+import { AppHeader } from "@/components/layout/shared/appHeader";
+import LandingPage from "@/components/layout/individual/landingPage";
 import { prefetchUsersMe } from "@/features/dashboard/users/server/prefetch";
 
 const Page = async () => {

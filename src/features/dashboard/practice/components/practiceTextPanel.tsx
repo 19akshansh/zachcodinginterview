@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULTS } from "@/config/constants";
 import type { InterviewType } from "@/config/enums";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import {
   useSaveDraftTextAnswer,
   useSubmitTextAnswer,

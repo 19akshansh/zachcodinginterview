@@ -24,7 +24,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InterviewType, ProgrammingLanguage } from "@/config/enums";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/others/utils";
 import { useTRPC } from "@/trpc/client";
 import { useCountdown } from "../hooks/useCountdown";
 import {

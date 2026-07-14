@@ -11,7 +11,7 @@ import {
   EmptyView,
   EntityList,
   EntityItem,
-} from "@/components/entityComponents";
+} from "@/components/layout/shared/entityComponents";
 import {
   useRemoveInterview,
   useSuspenseInterviews,
@@ -26,7 +26,7 @@ import {
   CalendarIcon,
   ActivityIcon,
 } from "lucide-react";
-import { RelativeTime } from "@/components/relativeTime";
+import { RelativeTime } from "@/components/layout/shared/relativeTime";
 import { Badge } from "@/components/ui/badge";
 
 type InterviewsQueryResult = ReturnType<typeof useSuspenseInterviews>;
@@ -154,7 +154,7 @@ export const InterviewItem = ({ data }: { data: any }) => {
           </span>
         </div>
       );
-  }
+    }
 
     const statusStyles: Record<string, string> = {
       SCHEDULED: "bg-primary/10 text-primary border-primary/20",

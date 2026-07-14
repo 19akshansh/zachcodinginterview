@@ -1,15 +1,10 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import prisma from "@/lib/db";
-import { transporter } from "./mail";
-import {
-  polar,
-  checkout,
-  portal,
-  usage,
-} from "@polar-sh/better-auth";
+import prisma from "@/lib/db/db";
+import { transporter } from "../../helpers/mail";
+import { polar, checkout, portal, usage } from "@polar-sh/better-auth";
 import { envSchem } from "@/config/envSchema";
-import { polarClient } from "./polar";
+import { polarClient } from "../billing/polar";
 
 export const auth = betterAuth({
   baseURL: envSchem.BETTER_AUTH_URL,
@@ -224,31 +219,31 @@ copy and paste this link into your browser:
   user: {
     additionalFields: {
       role: {
-        type: "string", 
+        type: "string",
         defaultValue: "CANDIDATE",
         input: false,
       },
     },
   },
   plugins: [
-        polar({
-            client: polarClient,
-            createCustomerOnSignUp: true,
-            use: [
-                checkout({
-                    products: [
-                        {
-                            productId: envSchem.POLAR_PRO_PRODUCT_ID,
-                            slug: "pro"
-                        }
-                    ],
-                    successUrl: envSchem.POLAR_SUCCESS_URL,
-                    authenticatedUsersOnly: true,
-                    returnUrl: envSchem.NEXT_PUBLIC_APP_URL
-                }),
-                portal(),
-                usage(),
-            ],
-        })
-    ]
+    polar({
+      client: polarClient,
+      createCustomerOnSignUp: true,
+      use: [
+        checkout({
+          products: [
+            {
+              productId: envSchem.POLAR_PRO_PRODUCT_ID,
+              slug: "pro",
+            },
+          ],
+          successUrl: envSchem.POLAR_SUCCESS_URL,
+          authenticatedUsersOnly: true,
+          returnUrl: envSchem.NEXT_PUBLIC_APP_URL,
+        }),
+        portal(),
+        usage(),
+      ],
+    }),
+  ],
 });

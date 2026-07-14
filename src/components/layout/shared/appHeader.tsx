@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { LogOut, User, ChevronRight } from "lucide-react"; 
+import { LogOut, User, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
-import { SidebarTrigger } from "./ui/sidebar";
-import { authClient } from "@/lib/authClient";
+import { SidebarTrigger } from "../../ui/sidebar";
+import { authClient } from "@/lib/auth/client";
 import { useBreadcrumbLabels } from "@/hooks/useBreadcrumbsLabel";
 
 const routeLabels: Record<string, string> = {

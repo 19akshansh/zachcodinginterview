@@ -1,5 +1,5 @@
 import { ResetPassForm } from "@/features/auth/components/resetPassForm";
-import { requireUnAuth } from "@/lib/authUtils";
+import { requireUnAuth } from "@/lib/auth/utils";
 
 const Page = async () => {
   await requireUnAuth();

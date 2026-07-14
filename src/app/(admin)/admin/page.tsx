@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/authUtils";
+import { requireAdmin } from "@/lib/auth/utils";
 
 const Page = async () => {
   await requireAdmin();

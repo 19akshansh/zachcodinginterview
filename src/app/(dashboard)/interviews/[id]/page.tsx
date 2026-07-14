@@ -1,5 +1,5 @@
 import { InterviewDetailsClient } from "@/features/dashboard/interviews/components/interviewDetailsClient";
-import { requireAuth } from "@/lib/authUtils";
+import { requireAuth } from "@/lib/auth/utils";
 import { getQueryClient, HydrateClient, trpc } from "@/trpc/server";
 import { notFound } from "next/navigation";
 

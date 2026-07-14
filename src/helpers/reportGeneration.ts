@@ -1,8 +1,11 @@
-import prisma from "@/lib/db";
+import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { generateInterviewReport, type AIReportQuestionPart } from "@/lib/ai";
-import { generateAndStoreReportPdf } from "@/lib/reportPdf";
-import { deleteReportPdf } from "@/lib/storage";
+import {
+  generateInterviewReport,
+  type AIReportQuestionPart,
+} from "@/helpers/ai";
+import { generateAndStoreReportPdf } from "@/helpers/reportPdf";
+import { deleteReportPdf } from "@/helpers/storage";
 import { InterviewType } from "@/config/enums";
 
 export async function generateReportForInterview(interviewId: string) {

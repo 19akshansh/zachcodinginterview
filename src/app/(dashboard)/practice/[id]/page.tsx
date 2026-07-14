@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ErrorBoundary } from "react-error-boundary";
-import { requireAuth } from "@/lib/authUtils";
+import { requireAuth } from "@/lib/auth/utils";
 import { getQueryClient, HydrateClient, trpc } from "@/trpc/server";
 import {
   PracticeSession,

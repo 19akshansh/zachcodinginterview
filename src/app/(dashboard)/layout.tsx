@@ -1,8 +1,8 @@
-import { AppHeader } from "@/components/appHeader";
-import { AppSidebar } from "@/components/appSidebar";
+import { AppHeader } from "@/components/layout/shared/appHeader";
+import { AppSidebar } from "@/components/layout/shared/appSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { envSchem } from "@/config/envSchema";
-import { requireAuth } from "@/lib/authUtils";
+import { requireAuth } from "@/lib/auth/utils";
 import { BreadcrumbLabelsProvider } from "@/hooks/useBreadcrumbsLabel";
 import { Metadata } from "next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";

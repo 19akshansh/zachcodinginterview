@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { auth } from "./auth";
+import { auth } from "./server";
 import { redirect } from "next/navigation";
 import { envSchem } from "@/config/envSchema";
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ErrorView } from "@/components/entityComponents";
+import { ErrorView } from "@/components/layout/shared/entityComponents";
 import { InterviewType, ProgrammingLanguage } from "@/config/enums";
 import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
 import { useSuspensePracticeQuestion } from "../hooks/usePractice";
