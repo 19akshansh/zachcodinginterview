@@ -6,7 +6,6 @@ import { InterviewType, INTERVIEW_TYPE_LABELS, Verdict } from "@/config/enums";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
-const model = google("gemini-3.5-flash");
 
 const FALLBACK_MODELS = [
   google("gemini-3.5-flash"),
@@ -28,25 +27,20 @@ function isRetryableAiError(error: unknown): boolean {
   );
 }
 
-async function generateTextWithFallback<T>(
-  buildArgs: (
-    m: (typeof FALLBACK_MODELS)[number],
-  ) => Parameters<typeof generateText>[0],
-): Promise<T> {
+async function withModelFallback<R>(
+  fn: (m: (typeof FALLBACK_MODELS)[number], signal: AbortSignal) => Promise<R>,
+): Promise<R> {
   let lastError: unknown;
 
   for (const candidate of FALLBACK_MODELS) {
     try {
-      const result = await generateText({
-        ...buildArgs(candidate),
-        abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
-      });
-      return (result as unknown as { output: T }).output;
+      return await fn(candidate, AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS));
     } catch (error) {
       lastError = error;
       if (!isRetryableAiError(error)) {
         throw error;
       }
+      // otherwise fall through and try the next model in the chain
     }
   }
 
@@ -138,12 +132,14 @@ more hints used should lower those scores, since a strong candidate needs less h
     })
     .join("\n\n");
 
-  const { output } = await generateText({
-    model,
-    output: Output.object({
-      schema: reportSchema,
-    }),
-    prompt: `You are a senior engineer at a top tech company reviewing a candidate's technical interview. The interview had ${input.questions.length} part(s), evaluated below. Give ONE overall assessment that reflects performance across all parts, weighting coding problems most heavily.
+  const { output } = await withModelFallback((candidateModel, signal) =>
+    generateText({
+      model: candidateModel,
+      abortSignal: signal,
+      output: Output.object({
+        schema: reportSchema,
+      }),
+      prompt: `You are a senior engineer at a top tech company reviewing a candidate's technical interview. The interview had ${input.questions.length} part(s), evaluated below. Give ONE overall assessment that reflects performance across all parts, weighting coding problems most heavily.
 
 ${sections}
 
@@ -161,7 +157,8 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
   "suggestions": string[],
   "topicScores": { "<topic>": number (0-100) }
 }`,
-  });
+    }),
+  );
 
   return output;
 }
@@ -192,10 +189,12 @@ export async function evaluateTextAnswer(
       ? "Judge structured trade-off analysis, scalability reasoning, and clarity of the proposed architecture."
       : "Judge structure (ideally STAR-style), specificity, and clarity of the situation and outcome described.";
 
-  const { output } = await generateText({
-    model,
-    output: Output.object({ schema: practiceGradeSchema }),
-    prompt: `You are a senior interviewer grading a candidate's standalone practice answer for a ${label} question. Be fair but rigorous - this is practice, so give actionable feedback.
+  const { output } = await withModelFallback((candidateModel, signal) =>
+    generateText({
+      model: candidateModel,
+      abortSignal: signal,
+      output: Output.object({ schema: practiceGradeSchema }),
+      prompt: `You are a senior interviewer grading a candidate's standalone practice answer for a ${label} question. Be fair but rigorous - this is practice, so give actionable feedback.
 
 Question: ${input.questionTitle}
 ${input.questionPrompt}
@@ -212,7 +211,8 @@ Assign:
 
 Respond ONLY with valid JSON, no markdown fences, matching exactly:
 { "result": "PASSED" | "PARTIAL" | "FAILED", "feedback": string (2-4 sentences, specific and actionable) }`,
-  });
+    }),
+  );
 
   return output;
 }
@@ -231,15 +231,17 @@ export type AIResumeFeedbackOutput = z.infer<typeof resumeFeedbackSchema>;
 export async function generateResumeFeedback(
   resumeText: string,
 ): Promise<AIResumeFeedbackOutput> {
-  return generateTextWithFallback<AIResumeFeedbackOutput>((candidateModel) => ({
-    model: candidateModel,
-    providerOptions: {
-      google: {
-        thinkingConfig: { thinkingLevel: "low" },
+  const { output } = await withModelFallback((candidateModel, signal) =>
+    generateText({
+      model: candidateModel,
+      abortSignal: signal,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingLevel: "low" },
+        },
       },
-    },
-    output: Output.object({ schema: resumeFeedbackSchema }),
-    prompt: `You are an expert technical recruiter and ATS (Applicant Tracking System) reviewing a candidate's resume. Be fair but rigorous, and give specific, actionable feedback grounded in what is actually written below - do not invent details that aren't there.
+      output: Output.object({ schema: resumeFeedbackSchema }),
+      prompt: `You are an expert technical recruiter and ATS (Applicant Tracking System) reviewing a candidate's resume. Be fair but rigorous, and give specific, actionable feedback grounded in what is actually written below - do not invent details that aren't there.
 
 Resume content (extracted from PDF):
 """
@@ -257,7 +259,10 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
   "suggestions": string[] (concrete, actionable improvements),
   "sectionScores": { "formatting": number (0-100), "impact": number (0-100), "keywords": number (0-100), "clarity": number (0-100) }
 }`,
-  }));
+    }),
+  );
+
+  return output;
 }
 
 export interface AIHintInput {
@@ -275,9 +280,11 @@ const HINT_LEVEL_INSTRUCTIONS: Record<1 | 2 | 3, string> = {
 };
 
 export async function generateHint(input: AIHintInput): Promise<string> {
-  const { text } = await generateText({
-    model,
-    prompt: `You are a senior engineer giving a hint during a live coding interview. Be concise - 2-4 sentences max.
+  const { text } = await withModelFallback((candidateModel, signal) =>
+    generateText({
+      model: candidateModel,
+      abortSignal: signal,
+      prompt: `You are a senior engineer giving a hint during a live coding interview. Be concise - 2-4 sentences max.
 
 Question: ${input.questionTitle}
 ${input.questionPrompt}
@@ -290,7 +297,8 @@ ${input.code}
 Hint level ${input.level}/3: ${HINT_LEVEL_INSTRUCTIONS[input.level]}
 
 Respond with only the hint text, no preamble, no markdown.`,
-  });
+    }),
+  );
 
   return text.trim();
 }

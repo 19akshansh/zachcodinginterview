@@ -1,6 +1,8 @@
 import "pdf-parse/worker";
 import { PDFParse } from "pdf-parse";
 
+const MIN_WORD_COUNT = 20;
+
 export async function extractPdfText(buffer: Buffer): Promise<string> {
   let text: string;
 
@@ -15,9 +17,11 @@ export async function extractPdfText(buffer: Buffer): Promise<string> {
     );
   }
 
-  if (!text) {
+  const wordCount = text.split(/\s+/).filter(Boolean).length;
+
+  if (wordCount < MIN_WORD_COUNT) {
     throw new Error(
-      "We couldn't find any text in this PDF. Scanned/image-only resumes aren't supported - please upload a text-based PDF.",
+      "We couldn't find enough readable text in this PDF. Scanned/image-only resumes aren't supported yet - please upload a text-based PDF (export directly from Word/Google Docs rather than as a flattened image).",
     );
   }
 
