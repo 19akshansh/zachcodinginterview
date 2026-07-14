@@ -25,6 +25,7 @@ export async function uploadResumeFile(
     access: "public",
     contentType: "application/pdf",
     addRandomSuffix: false,
+    allowOverwrite: true
   });
 
   return blob.url;
