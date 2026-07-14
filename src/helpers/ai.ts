@@ -8,6 +8,53 @@ import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
 const model = google("gemini-3.5-flash");
 
+const FALLBACK_MODELS = [
+  google("gemini-3.5-flash"),
+  google("gemini-3.1-flash-lite"),
+] as const;
+
+const PER_ATTEMPT_TIMEOUT_MS = 45_000;
+
+function isRetryableAiError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    message.includes("overloaded") ||
+    message.includes("503") ||
+    message.includes("429") ||
+    message.includes("rate limit") ||
+    message.includes("unavailable") ||
+    message.includes("timeout") ||
+    message.includes("aborted")
+  );
+}
+
+async function generateTextWithFallback<T>(
+  buildArgs: (
+    m: (typeof FALLBACK_MODELS)[number],
+  ) => Parameters<typeof generateText>[0],
+): Promise<T> {
+  let lastError: unknown;
+
+  for (const candidate of FALLBACK_MODELS) {
+    try {
+      const result = await generateText({
+        ...buildArgs(candidate),
+        abortSignal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
+      });
+      return (result as unknown as { output: T }).output;
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableAiError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("All AI model attempts failed.");
+}
+
 export const reportSchema = z.object({
   overallScore: z.number().min(0).max(100),
   communication: z.number().min(0).max(100),
@@ -184,8 +231,8 @@ export type AIResumeFeedbackOutput = z.infer<typeof resumeFeedbackSchema>;
 export async function generateResumeFeedback(
   resumeText: string,
 ): Promise<AIResumeFeedbackOutput> {
-  const { output } = await generateText({
-    model,
+  return generateTextWithFallback<AIResumeFeedbackOutput>((candidateModel) => ({
+    model: candidateModel,
     providerOptions: {
       google: {
         thinkingConfig: { thinkingLevel: "low" },
@@ -210,9 +257,7 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
   "suggestions": string[] (concrete, actionable improvements),
   "sectionScores": { "formatting": number (0-100), "impact": number (0-100), "keywords": number (0-100), "clarity": number (0-100) }
 }`,
-  });
-
-  return output;
+  }));
 }
 
 export interface AIHintInput {
