@@ -24,3 +24,14 @@ export const DEFAULTS = {
   MAX_HINT_LEVEL: 3,
   MAX_POLL_ATTEMPTS: 20,
 };
+
+export const RESUME = {
+  MAX_FILE_SIZE_BYTES: 5 * 1024 * 1024,
+  ALLOWED_MIME_TYPES: ["application/pdf"],
+  ALLOWED_EXTENSION: ".pdf",
+};
+
+export const VIRUS_TOTAL = {
+  POLL_INTERVAL_MS: 2000,
+  MAX_POLL_ATTEMPTS: 6,
+};

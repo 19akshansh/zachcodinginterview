@@ -114,12 +114,10 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
 
-  bio              String?
-  githubUrl        String?
-  linkedinUrl      String?
-  skills           String[] @default([])
-  resumeUrl        String?
-  resumeParsedData Json? 
+  bio         String?
+  githubUrl   String?
+  linkedinUrl String?
+  skills      String[] @default([])
 
   banned       Boolean   @default(false)
   bannedReason String?
@@ -128,6 +126,7 @@ model User {
   sessions Session[]
   accounts Account[]
   settings Settings?
+  resume   Resume?
 
   interviews         Interview[] @relation("CandidateInterviews")
   assignedInterviews Interview[] @relation("RecruiterAssignedInterviews")
@@ -348,6 +347,43 @@ model Report {
   createdAt DateTime @default(now())
 
   @@map("report")
+}
+
+model Resume {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fileName            String
+  fileUrl             String
+  fileSize            Int
+  parsedText          String?
+  visibleToRecruiters Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feedback ResumeFeedback?
+
+  @@map("resume")
+}
+
+model ResumeFeedback {
+  id       String @id @default(cuid())
+  resumeId String @unique
+  resume   Resume @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+
+  atsScore      Int
+  summary       String
+  strengths     String[]
+  weaknesses    String[]
+  suggestions   String[]
+  sectionScores Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("resume_feedback")
 }
 
 model RecruiterInvite {

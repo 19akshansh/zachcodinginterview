@@ -170,6 +170,46 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
   return output;
 }
 
+export const resumeFeedbackSchema = z.object({
+  atsScore: z.number().min(0).max(100),
+  summary: z.string(),
+  strengths: z.array(z.string()),
+  weaknesses: z.array(z.string()),
+  suggestions: z.array(z.string()),
+  sectionScores: z.record(z.string(), z.number().min(0).max(100)),
+});
+
+export type AIResumeFeedbackOutput = z.infer<typeof resumeFeedbackSchema>;
+
+export async function generateResumeFeedback(
+  resumeText: string,
+): Promise<AIResumeFeedbackOutput> {
+  const { output } = await generateText({
+    model,
+    output: Output.object({ schema: resumeFeedbackSchema }),
+    prompt: `You are an expert technical recruiter and ATS (Applicant Tracking System) reviewing a candidate's resume. Be fair but rigorous, and give specific, actionable feedback grounded in what is actually written below - do not invent details that aren't there.
+
+Resume content (extracted from PDF):
+"""
+${resumeText}
+"""
+
+Evaluate formatting/scannability, use of concrete impact and metrics, keyword relevance for the roles implied by the content, and overall clarity. The "atsScore" should reflect both how well an automated ATS would parse and rank this resume, and how strong it reads to a human reviewer - it is used as the single overall rating shown to the candidate, so weigh it carefully.
+
+Respond ONLY with valid JSON, no markdown fences, matching exactly:
+{
+  "atsScore": number (0-100),
+  "summary": string (2-3 sentences, overall impression),
+  "strengths": string[] (specific things done well),
+  "weaknesses": string[] (specific gaps or issues),
+  "suggestions": string[] (concrete, actionable improvements),
+  "sectionScores": { "formatting": number (0-100), "impact": number (0-100), "keywords": number (0-100), "clarity": number (0-100) }
+}`,
+  });
+
+  return output;
+}
+
 export interface AIHintInput {
   questionTitle: string;
   questionPrompt: string;
