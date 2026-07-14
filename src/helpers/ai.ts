@@ -186,6 +186,11 @@ export async function generateResumeFeedback(
 ): Promise<AIResumeFeedbackOutput> {
   const { output } = await generateText({
     model,
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingLevel: "low" },
+      },
+    },
     output: Output.object({ schema: resumeFeedbackSchema }),
     prompt: `You are an expert technical recruiter and ATS (Applicant Tracking System) reviewing a candidate's resume. Be fair but rigorous, and give specific, actionable feedback grounded in what is actually written below - do not invent details that aren't there.
 

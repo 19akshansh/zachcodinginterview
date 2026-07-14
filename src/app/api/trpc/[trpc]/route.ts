@@ -3,8 +3,6 @@ import { createTRPCContext } from "@/trpc/init";
 import { appRouter } from "@/trpc/routers/_app";
 import { NextRequest } from "next/server";
 
-export const maxDuration = 60;
-
 const handler = (req: NextRequest) => {
   const cookie = req.headers.get("cookie");
   const host = req.headers.get("host");
