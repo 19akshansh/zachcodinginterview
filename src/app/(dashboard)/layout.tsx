@@ -3,6 +3,7 @@ import { AppSidebar } from "@/components/appSidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { envSchem } from "@/config/envSchema";
 import { requireAuth } from "@/lib/authUtils";
+import { BreadcrumbLabelsProvider } from "@/hooks/useBreadcrumbsLabel";
 import { Metadata } from "next";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 
@@ -22,13 +23,15 @@ const Layout = async ({ children }: { children: React.ReactNode }) => {
   const auth = await requireAuth();
 
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <AppHeader />
-        <NuqsAdapter>{children}</NuqsAdapter>
-      </SidebarInset>
-    </SidebarProvider>
+    <BreadcrumbLabelsProvider>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <AppHeader />
+          <NuqsAdapter>{children}</NuqsAdapter>
+        </SidebarInset>
+      </SidebarProvider>
+    </BreadcrumbLabelsProvider>
   );
 };
 

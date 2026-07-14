@@ -22,4 +22,5 @@ export const LIMITS = {
 export const DEFAULTS = {
   AUTOSAVE_DELAY_MS: 1200,
   MAX_HINT_LEVEL: 3,
+  MAX_POLL_ATTEMPTS: 20,
 };

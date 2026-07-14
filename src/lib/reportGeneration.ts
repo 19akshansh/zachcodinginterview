@@ -1,6 +1,8 @@
 import prisma from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { generateInterviewReport, type AIReportQuestionPart } from "@/lib/ai";
+import { generateAndStoreReportPdf } from "@/lib/reportPdf";
+import { deleteReportPdf } from "@/lib/storage";
 import { InterviewType } from "@/config/enums";
 
 export async function generateReportForInterview(interviewId: string) {
@@ -11,10 +13,18 @@ export async function generateReportForInterview(interviewId: string) {
         orderBy: { order: "asc" },
         include: { question: true },
       },
+      report: true,
     },
   });
 
   if (!interview || interview.questions.length === 0) {
+    return null;
+  }
+
+  const hasAnyAnswer = interview.questions.some(
+    (iq) => iq.code || iq.behavioralAnswer,
+  );
+  if (!hasAnyAnswer) {
     return null;
   }
 
@@ -31,25 +41,25 @@ export async function generateReportForInterview(interviewId: string) {
     hintsUsed: iq.hintLevel ?? 0,
   }));
 
-  const hasAnyAnswer = interview.questions.some(
-    (iq) => iq.code || iq.behavioralAnswer,
-  );
-  if (!hasAnyAnswer) {
-    return null;
-  }
-
   const aiReport = await generateInterviewReport({ questions: parts });
 
-  return prisma.report.upsert({
-    where: { interviewId },
-    update: {
-      ...aiReport,
-      topicScores: aiReport.topicScores as Prisma.InputJsonValue,
-    },
-    create: {
+  const previousReport = interview.report;
+  if (previousReport) {
+    if (previousReport.pdfUrl) {
+      await deleteReportPdf(previousReport.pdfUrl).catch((err) => {
+        console.error("REPORT_PDF_DELETE_FAILED", previousReport.id, err);
+      });
+    }
+    await prisma.report.delete({ where: { id: previousReport.id } });
+  }
+
+  const report = await prisma.report.create({
+    data: {
       interviewId,
       ...aiReport,
       topicScores: aiReport.topicScores as Prisma.InputJsonValue,
     },
   });
+
+  return generateAndStoreReportPdf(report.id);
 }

@@ -3,6 +3,7 @@
 import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,10 +18,7 @@ import Link from "next/link";
 import { VERDICT_LABELS } from "@/config/enums";
 import type { useSuspenseInterview } from "../hooks/useInterviews";
 import { useRegenerateReport } from "@/features/dashboard/reports/hooks/useReports";
-
-// Stop polling after this many attempts (~2 minutes at 4s intervals) and
-// show a retry option instead of spinning forever.
-const MAX_POLL_ATTEMPTS = 30;
+import { DEFAULTS } from "@/config/constants";
 
 type InterviewData = ReturnType<typeof useSuspenseInterview>["data"];
 
@@ -46,21 +44,26 @@ export const InterviewCompletedScreen = ({
     initialData: interview,
     refetchInterval: (query) => {
       if (query.state.data?.report) return false;
-      if (pollAttempts >= MAX_POLL_ATTEMPTS) return false;
+      if (pollAttempts >= DEFAULTS.MAX_POLL_ATTEMPTS) return false;
       return 4000;
     },
     refetchIntervalInBackground: true,
   });
 
   const report = data.report;
-  const hasTimedOut = !report && pollAttempts >= MAX_POLL_ATTEMPTS;
+  const hasTimedOut = !report && pollAttempts >= DEFAULTS.MAX_POLL_ATTEMPTS;
 
-  // Track how many times we've polled without getting a report back.
   useEffect(() => {
-    if (report || pollAttempts >= MAX_POLL_ATTEMPTS) return;
+    if (report || pollAttempts >= DEFAULTS.MAX_POLL_ATTEMPTS) return;
     const timer = setTimeout(() => setPollAttempts((n) => n + 1), 4000);
     return () => clearTimeout(timer);
   }, [report, pollAttempts]);
+
+  useEffect(() => {
+    if (hasTimedOut) {
+      toast.error("We couldn't generate your report. You can try again below.");
+    }
+  }, [hasTimedOut]);
 
   const handleRetry = () => {
     setPollAttempts(0);
@@ -103,6 +106,7 @@ export const InterviewCompletedScreen = ({
               variant="outline"
               className="w-full"
               render={<Link href="/interviews">Back to interviews</Link>}
+              nativeButton={false}
             />
           </>
         ) : !report ? (
@@ -162,8 +166,10 @@ export const InterviewCompletedScreen = ({
                   View full report
                 </Link>
               }
+              nativeButton={false}
             />
             <Button
+              nativeButton={false}
               variant="outline"
               className="w-full"
               render={<Link href="/interviews">Back to interviews</Link>}

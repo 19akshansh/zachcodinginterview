@@ -1,4 +1,3 @@
-import React from "react";
 import prisma from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
@@ -6,50 +5,8 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
 import { Verdict } from "@/config/enums";
-import { renderToBuffer } from "@react-pdf/renderer";
-import { InterviewReportPDF } from "@/lib/pdfTemplate";
-import { uploadReportPdf } from "@/lib/storage";
 import { generateReportForInterview } from "@/lib/reportGeneration";
-
-async function generateAndStoreReportPdf(reportId: string) {
-  const report = await prisma.report.findUnique({
-    where: { id: reportId },
-    include: {
-      interview: {
-        include: {
-          candidate: { select: { name: true } },
-          questions: {
-            orderBy: { order: "asc" },
-            take: 1,
-            select: {
-              question: { select: { title: true } },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!report) throw new TRPCError({ code: "NOT_FOUND" });
-
-  const buffer = await renderToBuffer(
-    React.createElement(InterviewReportPDF, {
-      report,
-      candidateName: report.interview.candidate.name,
-      questionTitle:
-        report.interview.title ||
-        report.interview.questions[0]?.question.title ||
-        "Technical Interview",
-    }),
-  );
-
-  const pdfUrl = await uploadReportPdf(report.id, buffer);
-
-  return prisma.report.update({
-    where: { id: report.id },
-    data: { pdfUrl },
-  });
-}
+import { generateAndStoreReportPdf } from "@/lib/reportPdf";
 
 export const reportsRouter = createTRPCRouter({
   generate: protectedProcedure
@@ -297,17 +254,13 @@ export const reportsRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const report = await prisma.report.findUnique({
         where: { id: input.reportId },
-        include: {
+        select: {
+          id: true,
+          pdfUrl: true,
           interview: {
-            include: {
-              candidate: { select: { name: true } },
-              questions: {
-                orderBy: { order: "asc" },
-                take: 1,
-                select: {
-                  question: { select: { title: true } },
-                },
-              },
+            select: {
+              candidateId: true,
+              assignedByRecruiterId: true,
             },
           },
         },
@@ -326,25 +279,8 @@ export const reportsRouter = createTRPCRouter({
       if (report.pdfUrl) return { url: report.pdfUrl };
 
       try {
-        const buffer = await renderToBuffer(
-          React.createElement(InterviewReportPDF, {
-            report,
-            candidateName: report.interview.candidate.name,
-            questionTitle:
-              report.interview.title ||
-              report.interview.questions[0]?.question.title ||
-              "Technical Interview",
-          }),
-        );
-
-        const pdfUrl = await uploadReportPdf(report.id, buffer);
-
-        await prisma.report.update({
-          where: { id: report.id },
-          data: { pdfUrl },
-        });
-
-        return { url: pdfUrl };
+        const updated = await generateAndStoreReportPdf(report.id);
+        return { url: updated.pdfUrl! };
       } catch (error) {
         console.error("PDF_GEN_ERROR", error);
         throw new TRPCError({

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { LogOut, User, ChevronRight } from "lucide-react"; // Added ChevronRight
+import { LogOut, User, ChevronRight } from "lucide-react"; 
 import { toast } from "sonner";
 import { SidebarTrigger } from "./ui/sidebar";
 import { authClient } from "@/lib/authClient";
+import { useBreadcrumbLabels } from "@/hooks/useBreadcrumbsLabel";
 
 const routeLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -25,6 +26,7 @@ const routeLabels: Record<string, string> = {
 export const AppHeader = () => {
   const pathname = usePathname();
   const router = useRouter();
+  const { labels } = useBreadcrumbLabels();
 
   const allSegments = pathname.split("/").filter(Boolean);
 
@@ -34,6 +36,7 @@ export const AppHeader = () => {
 
       const label =
         routeLabels[segment] ??
+        labels[segment] ??
         segment.charAt(0).toUpperCase() + segment.slice(1);
       return { label, href, segment };
     })
@@ -113,7 +116,6 @@ export const AppHeader = () => {
         })}
       </nav>
 
-      {/* Profile Dropdown Logic (Unchanged) */}
       <div className="ml-auto relative" ref={dropdownRef}>
         <button
           type="button"

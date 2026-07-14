@@ -11,7 +11,7 @@ const model = google("gemini-3.5-flash");
 export const reportSchema = z.object({
   overallScore: z.number().min(0).max(100),
   communication: z.number().min(0).max(100),
-  problemSolving: z.number().min(0).max(100),
+problemSolving: z.number().min(0).max(100),
   codeQuality: z.number().min(0).max(100),
   optimization: z.number().min(0).max(100),
   cleanliness: z.number().min(0).max(100),

@@ -1,4 +1,4 @@
-import { put } from "@vercel/blob";
+import { del, put } from "@vercel/blob";
 
 export async function uploadReportPdf(
   reportId: string,
@@ -11,4 +11,8 @@ export async function uploadReportPdf(
   });
 
   return blob.url;
+}
+
+export async function deleteReportPdf(url: string): Promise<void> {
+  await del(url);
 }

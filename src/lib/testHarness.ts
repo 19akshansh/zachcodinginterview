@@ -148,7 +148,7 @@ function pickBestEntryPoint(
 ): EntryPointCandidate {
   if (candidates.length === 0) {
     throw new EntryPointResolutionError(
-      "Could not find a solution to call — define a top-level function, or a `class Solution` with a public method.",
+      "Could not find a solution to call - define a top-level function, or a `class Solution` with a public method.",
     );
   }
   if (candidates.length === 1) return candidates[0];

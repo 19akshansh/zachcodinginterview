@@ -5,6 +5,7 @@ import { ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorView } from "@/components/entityComponents";
 import { InterviewType, ProgrammingLanguage } from "@/config/enums";
+import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
 import { useSuspensePracticeQuestion } from "../hooks/usePractice";
 import { PracticeCodingPanel } from "./practiceCodingPanel";
 import { PracticeTextPanel } from "./practiceTextPanel";
@@ -17,6 +18,8 @@ export const PracticeSession = ({
   defaultLanguage: ProgrammingLanguage;
 }) => {
   const { data: question } = useSuspensePracticeQuestion(id);
+
+  useBreadcrumbLabel(id, question.title);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-4 p-4 md:px-10 md:py-6">

@@ -2,7 +2,6 @@
 
 import {
   AlertTriangleIcon,
-  ChevronRight,
   DownloadIcon,
   FileTextIcon,
   Loader2,
@@ -11,7 +10,6 @@ import {
   TrophyIcon,
   UserIcon,
 } from "lucide-react";
-import Link from "next/link";
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { RelativeTime } from "@/components/relativeTime";
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { INTERVIEW_TYPE_LABELS, VERDICT_LABELS, Verdict } from "@/config/enums";
+import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
 import { useExportReport, useSuspenseReport } from "../hooks/useReports";
 
 type ReportData = ReturnType<typeof useSuspenseReport>["data"];
@@ -82,6 +81,8 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
     : null;
   const candidateName = interview?.candidate?.name;
 
+  useBreadcrumbLabel(reportId, title);
+
   const scoreEntries = SCORE_FIELDS.map(({ key, label }) => ({
     label,
     score: report[key] as number | null,
@@ -95,17 +96,6 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
 
   return (
     <div className="p-4 md:px-10 md:py-6 h-full flex flex-col gap-y-6 max-w-screen-xl mx-auto w-full">
-      <div className="flex items-center text-xs text-muted-foreground gap-2">
-        <Link
-          href="/reports"
-          className="hover:text-foreground transition-colors"
-        >
-          Reports
-        </Link>
-        <ChevronRight className="size-3" />
-        <span className="text-foreground">{title}</span>
-      </div>
-
       <Card>
         <CardContent className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-1">
           <div className="flex items-start gap-4">

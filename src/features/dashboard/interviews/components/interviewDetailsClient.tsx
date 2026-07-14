@@ -2,8 +2,8 @@
 
 import React from "react";
 import { ErrorBoundary } from "react-error-boundary";
-import Link from "next/link";
-import { ChevronRight, Loader2Icon, AlertTriangleIcon } from "lucide-react";
+import { Loader2Icon, AlertTriangleIcon } from "lucide-react";
+import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
 import { useSuspenseInterview } from "../hooks/useInterviews";
 import { InterviewStartScreen } from "./interviewStartScreen";
 import { InterviewSessionActive } from "./interviewSessionActive";
@@ -13,19 +13,10 @@ import { InterviewAbandonedScreen } from "./interviewAbandonedScreen";
 const InterviewSessionData = ({ interviewId }: { interviewId: string }) => {
   const { data: interview } = useSuspenseInterview(interviewId);
 
+  useBreadcrumbLabel(interviewId, interview.title || "Session");
+
   return (
     <div className="p-4 md:px-10 md:py-6 h-full flex flex-col gap-y-6 max-w-screen-xl mx-auto w-full min-h-0">
-      <div className="flex items-center text-xs text-muted-foreground gap-2">
-        <Link
-          href="/interviews"
-          className="hover:text-foreground transition-colors"
-        >
-          Interviews
-        </Link>
-        <ChevronRight className="size-3" />
-        <span className="text-foreground">{interview.title || "Session"}</span>
-      </div>
-
       {interview.status === "SCHEDULED" && (
         <InterviewStartScreen interview={interview} />
       )}
