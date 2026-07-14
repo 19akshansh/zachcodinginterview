@@ -31,6 +31,16 @@ export const RESUME = {
   ALLOWED_EXTENSION: ".pdf",
 };
 
+export const AVATAR = {
+  MAX_FILE_SIZE_BYTES: 2 * 1024 * 1024,
+  ALLOWED_MIME_TYPES: ["image/png", "image/jpeg", "image/svg+xml"],
+  ALLOWED_EXTENSIONS: [".png", ".jpg", ".jpeg", ".svg"],
+};
+
+export const ACTIVITY = {
+  HISTORY_DAYS: 371,
+};
+
 export const VIRUS_TOTAL = {
   POLL_INTERVAL_MS: 2000,
   MAX_POLL_ATTEMPTS: 6,
