@@ -3,11 +3,26 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useRef, useState, useEffect } from "react";
-import { LogOut, User, ChevronRight } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { toast } from "sonner";
 import { SidebarTrigger } from "../../ui/sidebar";
 import { authClient } from "@/lib/auth/client";
 import { useBreadcrumbLabels } from "@/hooks/useBreadcrumbsLabel";
+import {
+  Breadcrumb,
+  BreadcrumbEllipsis,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../../ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../ui/dropdown-menu";
 
 const routeLabels: Record<string, string> = {
   dashboard: "Dashboard",
@@ -91,30 +106,79 @@ export const AppHeader = () => {
     <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 bg-background">
       <SidebarTrigger />
 
-      <nav className="ml-4 flex items-center text-sm">
-        {breadcrumbs.map((bc, index) => {
-          const isLast = index === breadcrumbs.length - 1;
+      <Breadcrumb className="ml-4 min-w-0">
+        <BreadcrumbList className="flex-nowrap">
+          {(() => {
+            const MAX_VISIBLE = 3;
+            const shouldCollapse = breadcrumbs.length > MAX_VISIBLE;
+            const first = breadcrumbs[0];
+            const hidden = shouldCollapse ? breadcrumbs.slice(1, -2) : [];
+            const visible = shouldCollapse
+              ? [first, ...breadcrumbs.slice(-2)]
+              : breadcrumbs;
 
-          return (
-            <div key={bc.href} className="flex items-center">
-              {index > 0 && (
-                <ChevronRight className="mx-2 h-3.5 w-3.5 text-muted-foreground/60" />
-              )}
+            return visible.map((bc, index) => {
+              const isLast = index === visible.length - 1;
+              const showEllipsisBefore = shouldCollapse && index === 1;
 
-              {isLast ? (
-                <span className="font-medium text-foreground">{bc.label}</span>
-              ) : (
-                <Link
-                  href={bc.href}
-                  className="text-muted-foreground transition-colors hover:text-foreground"
-                >
-                  {bc.label}
-                </Link>
-              )}
-            </div>
-          );
-        })}
-      </nav>
+              return (
+                <div key={bc.href} className="flex items-center min-w-0">
+                  {index > 0 && <BreadcrumbSeparator />}
+
+                  {showEllipsisBefore && (
+                    <>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className="flex items-center outline-none"
+                          render={
+                            <button type="button">
+                              <BreadcrumbEllipsis className="hover:text-foreground" />
+                            </button>
+                          }
+                        />
+                        <DropdownMenuContent>
+                          {hidden.map((hiddenBc) => (
+                            <DropdownMenuItem
+                              key={hiddenBc.href}
+                              render={
+                                <Link
+                                  href={hiddenBc.href}
+                                  className="max-w-[240px] truncate"
+                                  title={hiddenBc.label}
+                                >
+                                  {hiddenBc.label}
+                                </Link>
+                              }
+                            />
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <BreadcrumbSeparator />
+                    </>
+                  )}
+
+                  <BreadcrumbItem className="min-w-0">
+                    {isLast ? (
+                      <BreadcrumbPage
+                        className="block max-w-[110px] truncate sm:max-w-[200px]"
+                        title={bc.label}
+                      >
+                        {bc.label}
+                      </BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink
+                        className="block max-w-[90px] truncate sm:max-w-[140px]"
+                        title={bc.label}
+                        render={<Link href={bc.href}>{bc.label}</Link>}
+                      />
+                    )}
+                  </BreadcrumbItem>
+                </div>
+              );
+            });
+          })()}
+        </BreadcrumbList>
+      </Breadcrumb>
 
       <div className="ml-auto relative" ref={dropdownRef}>
         <button

@@ -4,7 +4,7 @@ import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
-import { UserRole, Theme, ProfileVisibility } from "@/config/enums";
+import { UserRole, ProfileVisibility } from "@/config/enums";
 
 export const usersRouter = createTRPCRouter({
   getMe: protectedProcedure.query(async ({ ctx }) => {
@@ -21,37 +21,24 @@ export const usersRouter = createTRPCRouter({
 
     return user;
   }),
-  updateProfile: protectedProcedure
-    .input(
-      z.object({
-        name: z.string().min(2).optional(),
-        bio: z.string().max(500).optional(),
-        githubUrl: z.string().url().optional().or(z.literal("")),
-        linkedinUrl: z.string().url().optional().or(z.literal("")),
-        skills: z.array(z.string()).optional(),
-        image: z.string().url().optional(),
-      }),
-    )
-    .mutation(async ({ ctx, input }) => {
-      return await prisma.user.update({
-        where: { id: ctx.auth.user.id },
-        data: {
-          ...input,
-          updatedAt: new Date(),
-        },
-      });
-    }),
   updateSettings: protectedProcedure
     .input(
       z.object({
-        theme: z.enum(Theme).optional(),
-        language: z.string().optional(),
         emailNotifications: z.boolean().optional(),
-        pushNotifications: z.boolean().optional(),
         profileVisibility: z.enum(ProfileVisibility).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
+      if (
+        input.emailNotifications === undefined &&
+        input.profileVisibility === undefined
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Nothing to update.",
+        });
+      }
+
       return await prisma.settings.upsert({
         where: { userId: ctx.auth.user.id },
         update: input,
@@ -61,6 +48,13 @@ export const usersRouter = createTRPCRouter({
         },
       });
     }),
+  deleteAccount: protectedProcedure.mutation(async ({ ctx }) => {
+    await prisma.user.delete({
+      where: { id: ctx.auth.user.id },
+    });
+
+    return { success: true };
+  }),
   getMany: protectedProcedure
     .input(
       z.object({
@@ -75,16 +69,24 @@ export const usersRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      if (ctx.auth.user.role !== "ADMIN") {
+      const isAdmin = ctx.auth.user.role === "ADMIN";
+      const isRecruiter = ctx.auth.user.role === "RECRUITER";
+
+      if (!isAdmin && !isRecruiter) {
         throw new TRPCError({
           code: "FORBIDDEN",
-          message: "Admin access required",
+          message: "Admin or recruiter access required",
         });
       }
 
-      const { page, pageSize, search, role } = input;
+      const { page, pageSize, search } = input;
+      const role = isAdmin ? input.role : UserRole.CANDIDATE;
+
       const where: Prisma.UserWhereInput = {
         role,
+        ...(isAdmin
+          ? {}
+          : { settings: { profileVisibility: ProfileVisibility.PUBLIC } }),
         OR: search
           ? [
               { name: { contains: search, mode: "insensitive" } },
@@ -93,9 +95,23 @@ export const usersRouter = createTRPCRouter({
           : undefined,
       };
 
+      const select = {
+        id: true,
+        name: true,
+        email: true,
+        image: true,
+        bio: true,
+        role: true,
+        createdAt: true,
+        ...(isAdmin
+          ? { banned: true, bannedReason: true, bannedAt: true }
+          : {}),
+      } satisfies Prisma.UserSelect;
+
       const [items, totalCount] = await Promise.all([
         prisma.user.findMany({
           where,
+          select,
           skip: (page - 1) * pageSize,
           take: pageSize,
           orderBy: { createdAt: "desc" },

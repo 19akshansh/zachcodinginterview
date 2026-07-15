@@ -18,12 +18,6 @@ enum UserRole {
   ADMIN
 }
 
-enum Theme {
-  LIGHT
-  DARK
-  SYSTEM
-}
-
 enum ProfileVisibility {
   PUBLIC
   PRIVATE
@@ -114,10 +108,7 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @default(now()) @updatedAt
 
-  bio         String?
-  githubUrl   String?
-  linkedinUrl String?
-  skills      String[] @default([])
+  bio String?
 
   banned       Boolean   @default(false)
   bannedReason String?
@@ -191,10 +182,7 @@ model Settings {
   id                 String            @id @default(cuid())
   userId             String            @unique
   user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  theme              Theme             @default(SYSTEM)
-  language           String            @default("en")
   emailNotifications Boolean           @default(true)
-  pushNotifications  Boolean           @default(true)
   profileVisibility  ProfileVisibility @default(PRIVATE)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

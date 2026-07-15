@@ -176,9 +176,6 @@ export const ActivityCalendar = () => {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <p className="text-[10px] text-muted-foreground">
-                Learn how we count contributions
-              </p>
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <span>Less</span>
                 {([0, 1, 2, 3, 4] as const).map((level) => (

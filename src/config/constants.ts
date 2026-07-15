@@ -45,3 +45,7 @@ export const VIRUS_TOTAL = {
   POLL_INTERVAL_MS: 2000,
   MAX_POLL_ATTEMPTS: 6,
 };
+
+export const STORAGE_KEYS = {
+  GEMINI_API_KEY: "zach:gemini-api-key",
+};
