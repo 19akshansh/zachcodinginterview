@@ -1,19 +1,19 @@
 "use client";
 
-import React from "react";
 import {
   AlertTriangleIcon,
   CreditCardIcon,
   KeyRoundIcon,
   SlidersHorizontalIcon,
 } from "lucide-react";
+import React from "react";
 import { ErrorView } from "@/components/layout/shared/entityComponents";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSettingsParams } from "../hooks/useSettingsParams";
-import { GeneralTab } from "./generalTab";
 import { ApiKeysTab } from "./apiKeysTab";
 import { BillingTab } from "./billingTab";
 import { DangerZoneTab } from "./dangerZoneTab";
+import { GeneralTab } from "./generalTab";
 
 export const SettingsHeader = () => (
   <div className="flex flex-col">
@@ -32,24 +32,26 @@ const SettingsData = () => {
       value={tab}
       onValueChange={(value) => setParams({ tab: value as typeof tab })}
     >
-      <TabsList className="self-start">
-        <TabsTrigger value="general">
-          <SlidersHorizontalIcon />
-          General
-        </TabsTrigger>
-        <TabsTrigger value="api-keys">
-          <KeyRoundIcon />
-          API Keys
-        </TabsTrigger>
-        <TabsTrigger value="billing">
-          <CreditCardIcon />
-          Billing
-        </TabsTrigger>
-        <TabsTrigger value="danger-zone">
-          <AlertTriangleIcon />
-          Danger Zone
-        </TabsTrigger>
-      </TabsList>
+      <div className="-mx-4 overflow-x-auto px-4 pb-1 md:mx-0 md:px-0">
+        <TabsList className="w-max self-start">
+          <TabsTrigger value="general">
+            <SlidersHorizontalIcon />
+            General
+          </TabsTrigger>
+          <TabsTrigger value="api-keys">
+            <KeyRoundIcon />
+            API Keys
+          </TabsTrigger>
+          <TabsTrigger value="billing">
+            <CreditCardIcon />
+            Billing
+          </TabsTrigger>
+          <TabsTrigger value="danger-zone">
+            <AlertTriangleIcon />
+            Danger Zone
+          </TabsTrigger>
+        </TabsList>
+      </div>
 
       <TabsContent value="general" className="mt-4 max-w-2xl">
         <GeneralTab />
@@ -68,7 +70,7 @@ const SettingsData = () => {
 };
 
 const SettingsPage = () => (
-  <div className="p-4 md:px-10 md:py-6 h-full">
+  <div className="p-4 md:px-10 md:py-6 h-full max-w-[100vw] overflow-x-hidden">
     <div className="mx-auto max-w-screen-xl w-full flex flex-col gap-y-8 h-full">
       <SettingsHeader />
       <SettingsData />
@@ -85,7 +87,7 @@ export const SettingsContainer = () => {
 };
 
 export const SettingsLoading = () => (
-  <div className="p-4 md:px-10 md:py-6 h-full">
+  <div className="p-4 md:px-10 md:py-6 h-full max-w-[100vw] overflow-x-hidden">
     <div className="mx-auto max-w-screen-xl w-full flex flex-col gap-y-8 h-full">
       <SettingsHeader />
       <div className="flex justify-center items-center flex-1 min-h-[200px]">
