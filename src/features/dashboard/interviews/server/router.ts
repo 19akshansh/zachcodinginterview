@@ -10,6 +10,7 @@ import { z } from "zod";
 import { PAGINATION, LIMITS } from "@/config/constants";
 import { generateReportForInterview } from "@/helpers/reportGeneration";
 import { autoEndIfExpired } from "@/helpers/interviewTimeLimit";
+import { generateAndPersistResumeQuestions } from "@/helpers/resumeInterviewQuestion";
 import {
   InterviewType,
   Difficulty,
@@ -80,6 +81,21 @@ export const interviewsRouter = createTRPCRouter({
       const questionIds: string[] = [];
 
       for (const pick of picks) {
+        if (
+          pick.type === InterviewType.RESUME_BASED ||
+          pick.type === InterviewType.DOMAIN_SPECIFIC
+        ) {
+          const generatedIds = await generateAndPersistResumeQuestions({
+            userId,
+            type: pick.type,
+            count: pick.count,
+            difficulty: input.difficulty,
+            seniorityLevel: input.seniorityLevel,
+          });
+          questionIds.push(...generatedIds);
+          continue;
+        }
+
         const matching = await prisma.question.findMany({
           where: {
             type: pick.type,

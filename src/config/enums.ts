@@ -4,12 +4,6 @@ export enum UserRole {
   ADMIN = "ADMIN",
 }
 
-export enum Theme {
-  LIGHT = "LIGHT",
-  DARK = "DARK",
-  SYSTEM = "SYSTEM",
-}
-
 export enum ProfileVisibility {
   PUBLIC = "PUBLIC",
   PRIVATE = "PRIVATE",
