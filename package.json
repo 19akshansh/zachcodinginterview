@@ -75,6 +75,6 @@
     "typescript": "^5"
   },
   "overrides": {
-    "html-encoding-sniffer": "^4.0.0"
+    "jsdom": "26.1.0"
   }
 }
