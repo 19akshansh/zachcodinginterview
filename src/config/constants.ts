@@ -51,3 +51,5 @@ export const VIRUS_TOTAL = {
 export const STORAGE_KEYS = {
   GEMINI_API_KEY: "zach:gemini-api-key",
 };
+
+export const GEMINI_KEY_HEADER = "x-gemini-key";

@@ -1,6 +1,6 @@
 import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { createTRPCRouter, protectedProcedure, aiProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
@@ -49,7 +49,7 @@ export const reportsRouter = createTRPCRouter({
         },
       });
     }),
-  regenerateForInterview: protectedProcedure
+  regenerateForInterview: aiProcedure
     .input(z.object({ interviewId: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const interview = await prisma.interview.findUnique({
@@ -84,7 +84,10 @@ export const reportsRouter = createTRPCRouter({
         });
       }
 
-      const report = await generateReportForInterview(input.interviewId);
+      const report = await generateReportForInterview(
+        input.interviewId,
+        ctx.geminiApiKey,
+      );
 
       if (!report) {
         throw new TRPCError({

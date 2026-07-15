@@ -3,16 +3,27 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { cache } from "react";
 import superjson from "superjson";
 import { getSubscriptionStatus } from "@/lib/billing/subscriptions";
-import { LIMITS } from "@/config/constants";
+import { LIMITS, GEMINI_KEY_HEADER } from "@/config/constants";
+import { InvalidGeminiKeyError } from "@/helpers/ai";
+
+export class GeminiKeyRequiredError extends Error {
+  constructor() {
+    super("Add your Gemini API key in Settings to use AI features.");
+    this.name = "GeminiKeyRequiredError";
+  }
+}
 
 export const createTRPCContext = cache(async (opts: { headers: Headers }) => {
   const session = await auth.api.getSession({
     headers: opts.headers,
   });
 
+  const geminiApiKey = opts.headers.get(GEMINI_KEY_HEADER)?.trim() || null;
+
   return {
     session,
     headers: opts.headers,
+    geminiApiKey,
   };
 });
 
@@ -23,11 +34,32 @@ const t = initTRPC
      * @see https://trpc.io/docs/server/data-transformers
      */
     transformer: superjson,
+    errorFormatter: ({ shape, error }) => ({
+      ...shape,
+      data: {
+        ...shape.data,
+        geminiKeyIssue:
+          error.cause instanceof GeminiKeyRequiredError ||
+          error.cause instanceof InvalidGeminiKeyError,
+      },
+    }),
   });
 
 export const createTRPCRouter = t.router;
 export const createCallerFactory = t.createCallerFactory;
 export const baseProcedure = t.procedure;
+
+export function assertGeminiKey(
+  apiKey: string | null | undefined,
+): asserts apiKey is string {
+  if (!apiKey) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: "Add your Gemini API key in Settings to use AI features.",
+      cause: new GeminiKeyRequiredError(),
+    });
+  }
+}
 
 export const unprotectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
   return next({
@@ -55,6 +87,19 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+const geminiKeyMiddleware = t.middleware(async ({ ctx, next }) => {
+  assertGeminiKey(ctx.geminiApiKey);
+
+  return next({
+    ctx: {
+      ...ctx,
+      geminiApiKey: ctx.geminiApiKey,
+    },
+  });
+});
+
+export const aiProcedure = protectedProcedure.use(geminiKeyMiddleware);
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
   if (ctx.auth.user.role !== "ADMIN") {
@@ -115,3 +160,5 @@ export const proProcedure = protectedProcedure.use(async ({ ctx, next }) => {
     },
   });
 });
+
+export const proAiProcedure = proProcedure.use(geminiKeyMiddleware);

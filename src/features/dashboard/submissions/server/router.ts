@@ -1,5 +1,5 @@
 import prisma from "@/lib/db/db";
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { createTRPCRouter, protectedProcedure, aiProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -18,6 +18,7 @@ import { DEFAULTS } from "@/config/constants";
 async function loadActiveInterviewQuestion(
   interviewQuestionId: string,
   userId: string,
+  apiKey: string | null,
 ) {
   const interviewQuestion = await prisma.interviewQuestion.findUnique({
     where: { id: interviewQuestionId },
@@ -37,7 +38,7 @@ async function loadActiveInterviewQuestion(
     });
   }
 
-  const current = await autoEndIfExpired(interviewQuestion.interview);
+  const current = await autoEndIfExpired(interviewQuestion.interview, apiKey);
   if (current.status !== "IN_PROGRESS") {
     throw new TRPCError({
       code: "BAD_REQUEST",
@@ -61,6 +62,7 @@ export const submissionsRouter = createTRPCRouter({
       const interviewQuestion = await loadActiveInterviewQuestion(
         input.interviewQuestionId,
         ctx.auth.user.id,
+        ctx.geminiApiKey,
       );
 
       if (!isExecutableLanguage(input.language)) {
@@ -109,6 +111,7 @@ export const submissionsRouter = createTRPCRouter({
       const interviewQuestion = await loadActiveInterviewQuestion(
         input.interviewQuestionId,
         ctx.auth.user.id,
+        ctx.geminiApiKey,
       );
 
       if (!isExecutableLanguage(input.language)) {
@@ -164,7 +167,7 @@ export const submissionsRouter = createTRPCRouter({
 
       return interview.questions;
     }),
-  getHint: protectedProcedure
+  getHint: aiProcedure
     .input(
       z.object({
         interviewQuestionId: z.string(),
@@ -176,6 +179,7 @@ export const submissionsRouter = createTRPCRouter({
       const interviewQuestion = await loadActiveInterviewQuestion(
         input.interviewQuestionId,
         ctx.auth.user.id,
+        ctx.geminiApiKey,
       );
 
       const currentLevel = interviewQuestion.hintLevel ?? 0;
@@ -189,7 +193,7 @@ export const submissionsRouter = createTRPCRouter({
 
       const nextLevel = (currentLevel + 1) as 1 | 2 | 3;
 
-      const hintText = await generateHint({
+      const hintText = await generateHint(ctx.geminiApiKey, {
         questionTitle: interviewQuestion.question.title,
         questionPrompt: interviewQuestion.question.prompt,
         code: input.code,
@@ -220,6 +224,7 @@ export const submissionsRouter = createTRPCRouter({
       await loadActiveInterviewQuestion(
         input.interviewQuestionId,
         ctx.auth.user.id,
+        ctx.geminiApiKey,
       );
 
       return await prisma.interviewQuestion.update({

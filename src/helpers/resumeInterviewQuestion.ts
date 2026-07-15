@@ -9,9 +9,11 @@ import {
 import {
   generateDomainSpecificQuestions,
   generateResumeBasedQuestions,
+  InvalidGeminiKeyError,
 } from "@/helpers/ai";
 
 interface GenerateAndPersistParams {
+  apiKey: string;
   userId: string;
   type: InterviewType.RESUME_BASED | InterviewType.DOMAIN_SPECIFIC;
   count: number;
@@ -20,6 +22,7 @@ interface GenerateAndPersistParams {
 }
 
 export async function generateAndPersistResumeQuestions({
+  apiKey,
   userId,
   type,
   count,
@@ -53,13 +56,21 @@ export async function generateAndPersistResumeQuestions({
 
   let generated: Awaited<ReturnType<typeof generator>>;
   try {
-    generated = await generator({
+    generated = await generator(apiKey, {
       resumeText: resume.parsedText,
       count,
       difficulty,
       seniorityLevel,
     });
   } catch (error) {
+    if (error instanceof InvalidGeminiKeyError) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: error.message,
+        cause: error,
+      });
+    }
+
     console.error("RESUME_QUESTION_GENERATION_FAILED", type, error);
     throw new TRPCError({
       code: "SERVICE_UNAVAILABLE",

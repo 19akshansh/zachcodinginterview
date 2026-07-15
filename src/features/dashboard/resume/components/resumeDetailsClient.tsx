@@ -32,6 +32,8 @@ import {
   useToggleResumeVisibility,
 } from "../hooks/useResume";
 import { toast } from "sonner";
+import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
+import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
 
 type ResumeData = ReturnType<typeof useSuspenseResume>["data"];
 
@@ -66,6 +68,8 @@ const ScoreBar = ({ label, score }: { label: string; score: number }) => {
 
 const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
   const generateFeedback = useGenerateResumeFeedback();
+  const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
+    useGeminiKeyModal();
 
   if (!resume) {
     toast.error("Something went wrong. Please try again.");
@@ -77,6 +81,7 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
   if (!feedback) {
     return (
       <Card>
+        {geminiKeyModal}
         <CardContent className="flex flex-col items-center justify-center gap-4 py-10 text-center">
           <div className="size-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
             <SparklesIcon className="size-6 text-primary" />
@@ -95,7 +100,10 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
               checked={generateFeedback.isPending}
               disabled={generateFeedback.isPending}
               onCheckedChange={(checked) => {
-                if (checked) generateFeedback.mutate();
+                if (checked)
+                  generateFeedback.mutate(undefined, {
+                    onError: (err) => handleGeminiKeyError(err),
+                  });
               }}
             />
             <span className="text-sm font-medium">
@@ -107,6 +115,7 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
               <Loader2Icon className="size-4 animate-spin text-primary" />
             )}
           </div>
+          <GeminiKeyNotice message="Add a Gemini key to generate resume feedback." />
         </CardContent>
       </Card>
     );
@@ -118,6 +127,7 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
 
   return (
     <div className="flex flex-col gap-6">
+      {geminiKeyModal}
       <Card>
         <CardContent className="flex flex-col md:flex-row md:items-center justify-between gap-6 pt-1">
           <div className="flex items-start gap-4">
@@ -137,18 +147,25 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            disabled={generateFeedback.isPending}
-            onClick={() => generateFeedback.mutate()}
-          >
-            {generateFeedback.isPending ? (
-              <Loader2Icon className="size-4 animate-spin" />
-            ) : (
-              <RefreshCwIcon className="size-4" />
-            )}
-            Regenerate Feedback
-          </Button>
+          <div className="flex flex-col items-end gap-2">
+            <Button
+              variant="outline"
+              disabled={generateFeedback.isPending}
+              onClick={() =>
+                generateFeedback.mutate(undefined, {
+                  onError: (err) => handleGeminiKeyError(err),
+                })
+              }
+            >
+              {generateFeedback.isPending ? (
+                <Loader2Icon className="size-4 animate-spin" />
+              ) : (
+                <RefreshCwIcon className="size-4" />
+              )}
+              Regenerate Feedback
+            </Button>
+            <GeminiKeyNotice message="Add a Gemini key to regenerate." />
+          </div>
         </CardContent>
       </Card>
 

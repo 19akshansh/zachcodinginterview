@@ -18,6 +18,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCreateInterview } from "../hooks/useInterviews";
 import { useMyResume } from "@/features/dashboard/resume/hooks/useResume";
 import { useUpgradeModal } from "@/hooks/useUpgradeModal";
+import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
+import { useGeminiKey } from "@/hooks/useGeminiKey";
 import {
   Loader2,
   PlayCircle,
@@ -80,6 +82,9 @@ type InterviewFormValues = z.infer<typeof interviewSchema>;
 export const InterviewForm = () => {
   const router = useRouter();
   const { modal, handleError } = useUpgradeModal();
+  const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
+    useGeminiKeyModal();
+  const { apiKey: geminiApiKey, isLoaded: isGeminiKeyLoaded } = useGeminiKey();
   const createInterview = useCreateInterview();
 
   const form = useForm<InterviewFormValues>({
@@ -101,6 +106,9 @@ export const InterviewForm = () => {
   } = useMyResume();
   const hasResume = Boolean(resume);
   const isResumeGateBlocking = isResumeLoading || isResumeError || !hasResume;
+  const hasGeminiKey = Boolean(geminiApiKey);
+  const isGeminiGateBlocking = !isGeminiKeyLoaded || !hasGeminiKey;
+  const isResumeTypeGateBlocking = isResumeGateBlocking || isGeminiGateBlocking;
 
   const resumeGateMessage = isResumeError
     ? "We couldn't check your resume status. Please refresh and try again."
@@ -108,10 +116,15 @@ export const InterviewForm = () => {
       ? "Resume Based and Domain Specific interviews need a submitted resume."
       : null;
 
+  const geminiKeyGateMessage =
+    !resumeGateMessage && isGeminiKeyLoaded && !hasGeminiKey
+      ? "Resume Based and Domain Specific interviews also need your Gemini API key."
+      : null;
+
   const types = form.watch("types");
   const questionCounts = form.watch("questionCounts");
   const availableTypes = ALL_TYPES.filter(
-    (t) => !RESUME_GATED_TYPES.has(t) || !isResumeGateBlocking,
+    (t) => !RESUME_GATED_TYPES.has(t) || !isResumeTypeGateBlocking,
   );
   const isAllSelected = availableTypes.every((t) => types.includes(t));
   const totalQuestions = types.reduce(
@@ -120,7 +133,7 @@ export const InterviewForm = () => {
   );
 
   useEffect(() => {
-    if (!isResumeGateBlocking) return;
+    if (!isResumeTypeGateBlocking) return;
 
     const blocked = types.filter((t) => RESUME_GATED_TYPES.has(t));
     if (blocked.length === 0) return;
@@ -142,10 +155,10 @@ export const InterviewForm = () => {
 
     form.setValue("types", nextTypes, { shouldValidate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isResumeGateBlocking]);
+  }, [isResumeTypeGateBlocking]);
 
   const toggleType = (value: InterviewType) => {
-    if (RESUME_GATED_TYPES.has(value) && isResumeGateBlocking) return;
+    if (RESUME_GATED_TYPES.has(value) && isResumeTypeGateBlocking) return;
 
     const isSelected = types.includes(value);
 
@@ -213,7 +226,10 @@ export const InterviewForm = () => {
       },
       {
         onSuccess: (data) => router.push(`/interviews/${data.id}`),
-        onError: (err) => handleError(err),
+        onError: (err) => {
+          handleError(err);
+          handleGeminiKeyError(err);
+        },
       },
     );
   };
@@ -221,6 +237,7 @@ export const InterviewForm = () => {
   return (
     <Form {...form}>
       {modal}
+      {geminiKeyModal}
       <form
         onSubmit={form.handleSubmit(onSubmit, (errors) => {
           toast.error(`Validation failed: ${errors}`);
@@ -281,7 +298,8 @@ export const InterviewForm = () => {
                   {interviewTypeOptions.map((opt) => {
                     const isActive = field.value.includes(opt.value);
                     const isLocked =
-                      RESUME_GATED_TYPES.has(opt.value) && isResumeGateBlocking;
+                      RESUME_GATED_TYPES.has(opt.value) &&
+                      (isResumeGateBlocking || !hasGeminiKey);
                     return (
                       <button
                         key={opt.value}
@@ -290,7 +308,9 @@ export const InterviewForm = () => {
                         onClick={() => toggleType(opt.value)}
                         title={
                           isLocked
-                            ? (resumeGateMessage ?? undefined)
+                            ? (resumeGateMessage ??
+                              geminiKeyGateMessage ??
+                              undefined)
                             : undefined
                         }
                         className={cn(
@@ -323,6 +343,17 @@ export const InterviewForm = () => {
                         Submit your resume
                       </Link>
                     )}
+                  </AlertDescription>
+                </Alert>
+              )}
+              {geminiKeyGateMessage && (
+                <Alert>
+                  <TriangleAlert className="size-4" />
+                  <AlertDescription>
+                    {geminiKeyGateMessage}{" "}
+                    <Link href="/settings?tab=api-keys" className="font-medium">
+                      Add your Gemini key
+                    </Link>
                   </AlertDescription>
                 </Alert>
               )}

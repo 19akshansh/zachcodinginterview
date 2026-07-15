@@ -2,7 +2,10 @@ import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
 import { generateResumeFeedback } from "@/helpers/ai";
 
-export async function generateFeedbackForResume(resumeId: string) {
+export async function generateFeedbackForResume(
+  apiKey: string,
+  resumeId: string,
+) {
   const resume = await prisma.resume.findUnique({
     where: { id: resumeId },
     select: {
@@ -22,7 +25,7 @@ export async function generateFeedbackForResume(resumeId: string) {
     );
   }
 
-  const aiFeedback = await generateResumeFeedback(resume.parsedText);
+  const aiFeedback = await generateResumeFeedback(apiKey, resume.parsedText);
 
   if (resume.feedback) {
     await prisma.resumeFeedback.delete({ where: { id: resume.feedback.id } });

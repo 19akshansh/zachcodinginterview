@@ -1,7 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText, Output } from "ai";
 import { z } from "zod";
-import { envSchem } from "@/config/envSchema";
 import {
   Difficulty,
   InterviewType,
@@ -12,12 +11,10 @@ import {
 } from "@/config/enums";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
-const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
-
-const FALLBACK_MODELS = [
-  google("gemini-3.5-flash"),
-  google("gemini-3.1-flash-lite"),
-] as const;
+function getFallbackModels(apiKey: string) {
+  const google = createGoogleGenerativeAI({ apiKey });
+  return [google("gemini-3.5-flash"), google("gemini-3.1-flash-lite")] as const;
+}
 
 const PER_ATTEMPT_TIMEOUT_MS = 45_000;
 
@@ -34,20 +31,48 @@ function isRetryableAiError(error: unknown): boolean {
   );
 }
 
+function isInvalidKeyError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    message.includes("api key not valid") ||
+    message.includes("api_key_invalid") ||
+    message.includes("permission denied") ||
+    message.includes("401") ||
+    message.includes("403")
+  );
+}
+
+export class InvalidGeminiKeyError extends Error {
+  constructor() {
+    super(
+      "Your Gemini API key was rejected. Double check it in Settings and try again.",
+    );
+    this.name = "InvalidGeminiKeyError";
+  }
+}
+
 async function withModelFallback<R>(
-  fn: (m: (typeof FALLBACK_MODELS)[number], signal: AbortSignal) => Promise<R>,
+  apiKey: string,
+  fn: (
+    m: ReturnType<typeof getFallbackModels>[number],
+    signal: AbortSignal,
+  ) => Promise<R>,
 ): Promise<R> {
   let lastError: unknown;
 
-  for (const candidate of FALLBACK_MODELS) {
+  for (const candidate of getFallbackModels(apiKey)) {
     try {
       return await fn(candidate, AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS));
     } catch (error) {
+      if (isInvalidKeyError(error)) {
+        throw new InvalidGeminiKeyError();
+      }
+
       lastError = error;
       if (!isRetryableAiError(error)) {
         throw error;
       }
-      // otherwise fall through and try the next model in the chain
+      // fallback to other model
     }
   }
 
@@ -101,6 +126,7 @@ const WRITTEN_RESPONSE_GUIDANCE: Partial<Record<InterviewType, string>> = {
 };
 
 export async function generateInterviewReport(
+  apiKey: string,
   input: AIReportInput,
 ): Promise<AIReportOutput> {
   const sections = input.questions
@@ -139,7 +165,7 @@ more hints used should lower those scores, since a strong candidate needs less h
     })
     .join("\n\n");
 
-  const { output } = await withModelFallback((candidateModel, signal) =>
+  const { output } = await withModelFallback(apiKey, (candidateModel, signal) =>
     generateText({
       model: candidateModel,
       abortSignal: signal,
@@ -188,6 +214,7 @@ const practiceGradeSchema = z.object({
 });
 
 export async function evaluateTextAnswer(
+  apiKey: string,
   input: AIPracticeGradeInput,
 ): Promise<AIPracticeGradeOutput> {
   const label = INTERVIEW_TYPE_LABELS[input.interviewType];
@@ -196,7 +223,7 @@ export async function evaluateTextAnswer(
       ? "Judge structured trade-off analysis, scalability reasoning, and clarity of the proposed architecture."
       : "Judge structure (ideally STAR-style), specificity, and clarity of the situation and outcome described.";
 
-  const { output } = await withModelFallback((candidateModel, signal) =>
+  const { output } = await withModelFallback(apiKey, (candidateModel, signal) =>
     generateText({
       model: candidateModel,
       abortSignal: signal,
@@ -236,9 +263,10 @@ export const resumeFeedbackSchema = z.object({
 export type AIResumeFeedbackOutput = z.infer<typeof resumeFeedbackSchema>;
 
 export async function generateResumeFeedback(
+  apiKey: string,
   resumeText: string,
 ): Promise<AIResumeFeedbackOutput> {
-  const { output } = await withModelFallback((candidateModel, signal) =>
+  const { output } = await withModelFallback(apiKey, (candidateModel, signal) =>
     generateText({
       model: candidateModel,
       abortSignal: signal,
@@ -310,6 +338,7 @@ interface GenerateFromResumeInput {
 }
 
 async function generateQuestionsFromResume(
+  apiKey: string,
   input: GenerateFromResumeInput,
   mode: "resume" | "domain",
 ): Promise<AIGeneratedQuestion[]> {
@@ -321,7 +350,7 @@ async function generateQuestionsFromResume(
       ? `Base every question directly on this candidate's resume - reference their actual listed projects, roles, employers, and technologies by name. Ask them to go deeper on specific things they claim to have done (their ownership, decisions, trade-offs, and impact).`
       : `First infer this candidate's domain/field of expertise from the resume (e.g. backend engineering, data science, product design, DevOps). Then write questions that test deep domain knowledge in that field - concepts, best practices, and applied scenarios a strong practitioner in that domain should know. Do not simply ask them to restate resume content; the resume is only used to determine which domain to test.`;
 
-  const { output } = await withModelFallback((candidateModel, signal) =>
+  const { output } = await withModelFallback(apiKey, (candidateModel, signal) =>
     generateText({
       model: candidateModel,
       abortSignal: signal,
@@ -357,19 +386,24 @@ Respond ONLY with valid JSON, no markdown fences, matching exactly:
 }
 
 export async function generateResumeBasedQuestions(
+  apiKey: string,
   input: GenerateFromResumeInput,
 ): Promise<AIGeneratedQuestion[]> {
-  return generateQuestionsFromResume(input, "resume");
+  return generateQuestionsFromResume(apiKey, input, "resume");
 }
 
 export async function generateDomainSpecificQuestions(
+  apiKey: string,
   input: GenerateFromResumeInput,
 ): Promise<AIGeneratedQuestion[]> {
-  return generateQuestionsFromResume(input, "domain");
+  return generateQuestionsFromResume(apiKey, input, "domain");
 }
 
-export async function generateHint(input: AIHintInput): Promise<string> {
-  const { text } = await withModelFallback((candidateModel, signal) =>
+export async function generateHint(
+  apiKey: string,
+  input: AIHintInput,
+): Promise<string> {
+  const { text } = await withModelFallback(apiKey, (candidateModel, signal) =>
     generateText({
       model: candidateModel,
       abortSignal: signal,

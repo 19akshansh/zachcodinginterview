@@ -8,7 +8,10 @@ import { generateAndStoreReportPdf } from "@/helpers/reportPdf";
 import { deleteReportPdf } from "@/helpers/storage";
 import { InterviewType } from "@/config/enums";
 
-export async function generateReportForInterview(interviewId: string) {
+export async function generateReportForInterview(
+  interviewId: string,
+  apiKey: string | null,
+) {
   const interview = await prisma.interview.findUnique({
     where: { id: interviewId },
     include: {
@@ -31,6 +34,15 @@ export async function generateReportForInterview(interviewId: string) {
     return null;
   }
 
+  if (!apiKey) {
+    console.error(
+      "REPORT_GENERATION_SKIPPED_NO_KEY",
+      interviewId,
+      "candidate has no Gemini key set - report will stay pending until they add one and regenerate it.",
+    );
+    return null;
+  }
+
   const parts: AIReportQuestionPart[] = interview.questions.map((iq) => ({
     questionTitle: iq.question.title,
     questionPrompt: iq.question.prompt,
@@ -44,7 +56,7 @@ export async function generateReportForInterview(interviewId: string) {
     hintsUsed: iq.hintLevel ?? 0,
   }));
 
-  const aiReport = await generateInterviewReport({ questions: parts });
+  const aiReport = await generateInterviewReport(apiKey, { questions: parts });
 
   const previousReport = interview.report;
   if (previousReport) {

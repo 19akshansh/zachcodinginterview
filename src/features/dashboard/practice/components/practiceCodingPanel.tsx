@@ -29,6 +29,8 @@ import {
   useSubmitPracticeCode,
 } from "../hooks/usePractice";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
+import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
+import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
 
 const EXECUTABLE_LANGUAGES = languageOptions.filter((l) => !l.disabled);
 
@@ -88,6 +90,8 @@ export const PracticeCodingPanel = ({
   const runCode = useRunPracticeCode();
   const submitCode = useSubmitPracticeCode();
   const getHint = useGetPracticeHint();
+  const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
+    useGeminiKeyModal();
 
   const handleRun = () => {
     setActiveTab("tests");
@@ -111,6 +115,7 @@ export const PracticeCodingPanel = ({
           setHints((prev) => [...prev, data.hint]);
           setHintLevel(data.level);
         },
+        onError: (err) => handleGeminiKeyError(err),
       },
     );
   };
@@ -120,6 +125,7 @@ export const PracticeCodingPanel = ({
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+      {geminiKeyModal}
       <ResizablePanel defaultSize={38} minSize={25}>
         <div className="h-full overflow-y-auto pr-4 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -186,6 +192,8 @@ export const PracticeCodingPanel = ({
                 {hintLevel >= 3 ? "No hints left" : "Get a hint"}
               </Button>
             </div>
+
+            <GeminiKeyNotice message="Add a Gemini key to get hints." />
 
             {hints.length === 0 ? (
               <p className="text-xs text-muted-foreground/70 italic">

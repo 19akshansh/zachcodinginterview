@@ -31,6 +31,8 @@ import {
   useSubmitCode,
 } from "@/features/dashboard/submissions/hooks/useSubmissions";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
+import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
+import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
 
 const EXECUTABLE_LANGUAGES = languageOptions.filter((l) => !l.disabled);
 
@@ -97,6 +99,8 @@ export const SessionCodingPanel = ({
   const runCode = useRunCode();
   const submitCode = useSubmitCode();
   const getHint = useGetHint();
+  const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
+    useGeminiKeyModal();
 
   const invalidateInterview = () => {
     queryClient.invalidateQueries({
@@ -134,6 +138,7 @@ export const SessionCodingPanel = ({
           setHints((prev) => [...prev, data.hint]);
           setHintLevel(data.level);
         },
+        onError: (err) => handleGeminiKeyError(err),
       },
     );
   };
@@ -143,6 +148,7 @@ export const SessionCodingPanel = ({
 
   return (
     <ResizablePanelGroup orientation="horizontal" className="min-h-0 flex-1">
+      {geminiKeyModal}
       <ResizablePanel defaultSize={38} minSize={25}>
         <div className="h-full overflow-y-auto pr-4 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -210,6 +216,8 @@ export const SessionCodingPanel = ({
                 {hintLevel >= 3 ? "No hints left" : "Get a hint"}
               </Button>
             </div>
+
+            <GeminiKeyNotice message="Add a Gemini key to get hints." />
 
             {hints.length === 0 ? (
               <p className="text-xs text-muted-foreground/70 italic">
