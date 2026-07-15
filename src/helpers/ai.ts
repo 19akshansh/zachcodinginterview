@@ -2,7 +2,14 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText, Output } from "ai";
 import { z } from "zod";
 import { envSchem } from "@/config/envSchema";
-import { InterviewType, INTERVIEW_TYPE_LABELS, Verdict } from "@/config/enums";
+import {
+  Difficulty,
+  InterviewType,
+  INTERVIEW_TYPE_LABELS,
+  SeniorityLevel,
+  SENIORITY_LABELS,
+  Verdict,
+} from "@/config/enums";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 
 const google = createGoogleGenerativeAI({ apiKey: envSchem.GEMINI_API_KEY });
@@ -278,6 +285,88 @@ const HINT_LEVEL_INSTRUCTIONS: Record<1 | 2 | 3, string> = {
   2: "Outline the approach in plain English or light pseudocode. Do NOT give working code.",
   3: "Give a near-complete solution with one small gap left for the candidate to fill in themselves.",
 };
+
+const generatedQuestionSchema = z.object({
+  questions: z
+    .array(
+      z.object({
+        title: z.string(),
+        prompt: z.string(),
+        topics: z.array(z.string()).default([]),
+      }),
+    )
+    .min(1),
+});
+
+export type AIGeneratedQuestion = z.infer<
+  typeof generatedQuestionSchema
+>["questions"][number];
+
+interface GenerateFromResumeInput {
+  resumeText: string;
+  count: number;
+  difficulty: Difficulty;
+  seniorityLevel: SeniorityLevel;
+}
+
+async function generateQuestionsFromResume(
+  input: GenerateFromResumeInput,
+  mode: "resume" | "domain",
+): Promise<AIGeneratedQuestion[]> {
+  const seniorityLabel = SENIORITY_LABELS[input.seniorityLevel];
+  const difficultyLabel = input.difficulty.toLowerCase();
+
+  const focusInstructions =
+    mode === "resume"
+      ? `Base every question directly on this candidate's resume - reference their actual listed projects, roles, employers, and technologies by name. Ask them to go deeper on specific things they claim to have done (their ownership, decisions, trade-offs, and impact).`
+      : `First infer this candidate's domain/field of expertise from the resume (e.g. backend engineering, data science, product design, DevOps). Then write questions that test deep domain knowledge in that field - concepts, best practices, and applied scenarios a strong practitioner in that domain should know. Do not simply ask them to restate resume content; the resume is only used to determine which domain to test.`;
+
+  const { output } = await withModelFallback((candidateModel, signal) =>
+    generateText({
+      model: candidateModel,
+      abortSignal: signal,
+      output: Output.object({ schema: generatedQuestionSchema }),
+      prompt: `You are a senior interviewer preparing ${mode === "resume" ? "resume-based" : "domain-specific"} interview questions for a candidate.
+
+Candidate resume (extracted from PDF):
+"""
+${input.resumeText}
+"""
+
+Candidate seniority level: ${seniorityLabel}
+Target difficulty: ${difficultyLabel}
+
+${focusInstructions}
+
+Generate exactly ${input.count} distinct, non-overlapping question(s). Each should be answerable as a written/spoken response (no code required), calibrated to the stated seniority and difficulty.
+
+Respond ONLY with valid JSON, no markdown fences, matching exactly:
+{
+  "questions": [
+    {
+      "title": string (short, e.g. "Scaling the payments service"),
+      "prompt": string (the full question shown to the candidate, 1-4 sentences),
+      "topics": string[] (1-4 short topic tags)
+    }
+  ]
+}`,
+    }),
+  );
+
+  return output.questions.slice(0, input.count);
+}
+
+export async function generateResumeBasedQuestions(
+  input: GenerateFromResumeInput,
+): Promise<AIGeneratedQuestion[]> {
+  return generateQuestionsFromResume(input, "resume");
+}
+
+export async function generateDomainSpecificQuestions(
+  input: GenerateFromResumeInput,
+): Promise<AIGeneratedQuestion[]> {
+  return generateQuestionsFromResume(input, "domain");
+}
 
 export async function generateHint(input: AIHintInput): Promise<string> {
   const { text } = await withModelFallback((candidateModel, signal) =>

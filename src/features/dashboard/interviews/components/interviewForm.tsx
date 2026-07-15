@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -13,11 +14,22 @@ import {
 } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useCreateInterview } from "../hooks/useInterviews";
+import { useMyResume } from "@/features/dashboard/resume/hooks/useResume";
 import { useUpgradeModal } from "@/hooks/useUpgradeModal";
-import { Loader2, PlayCircle, Minus, Plus, CheckCheck } from "lucide-react";
+import {
+  Loader2,
+  PlayCircle,
+  Minus,
+  Plus,
+  CheckCheck,
+  Lock,
+  TriangleAlert,
+} from "lucide-react";
 import { cn } from "@/lib/others/utils";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   Difficulty,
   InterviewType,
@@ -35,6 +47,10 @@ import { toast } from "sonner";
 
 const MAX_QUESTIONS = LIMITS.PRO_MAX_QUESTIONS;
 const ALL_TYPES = interviewTypeOptions.map((opt) => opt.value);
+const RESUME_GATED_TYPES = new Set([
+  InterviewType.RESUME_BASED,
+  InterviewType.DOMAIN_SPECIFIC,
+]);
 
 const interviewSchema = z
   .object({
@@ -78,15 +94,59 @@ export const InterviewForm = () => {
     },
   });
 
+  const {
+    data: resume,
+    isLoading: isResumeLoading,
+    isError: isResumeError,
+  } = useMyResume();
+  const hasResume = Boolean(resume);
+  const isResumeGateBlocking = isResumeLoading || isResumeError || !hasResume;
+
+  const resumeGateMessage = isResumeError
+    ? "We couldn't check your resume status. Please refresh and try again."
+    : !isResumeLoading && !hasResume
+      ? "Resume Based and Domain Specific interviews need a submitted resume."
+      : null;
+
   const types = form.watch("types");
   const questionCounts = form.watch("questionCounts");
-  const isAllSelected = ALL_TYPES.every((t) => types.includes(t));
+  const availableTypes = ALL_TYPES.filter(
+    (t) => !RESUME_GATED_TYPES.has(t) || !isResumeGateBlocking,
+  );
+  const isAllSelected = availableTypes.every((t) => types.includes(t));
   const totalQuestions = types.reduce(
     (sum, type) => sum + (questionCounts[type] ?? 1),
     0,
   );
 
+  useEffect(() => {
+    if (!isResumeGateBlocking) return;
+
+    const blocked = types.filter((t) => RESUME_GATED_TYPES.has(t));
+    if (blocked.length === 0) return;
+
+    const nextTypes = types.filter((t) => !RESUME_GATED_TYPES.has(t));
+
+    if (nextTypes.length === 0) {
+      form.setValue("types", [InterviewType.CODING], {
+        shouldValidate: true,
+      });
+      if (questionCounts[InterviewType.CODING] === undefined) {
+        form.setValue("questionCounts", {
+          ...questionCounts,
+          [InterviewType.CODING]: 1,
+        });
+      }
+      return;
+    }
+
+    form.setValue("types", nextTypes, { shouldValidate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isResumeGateBlocking]);
+
   const toggleType = (value: InterviewType) => {
+    if (RESUME_GATED_TYPES.has(value) && isResumeGateBlocking) return;
+
     const isSelected = types.includes(value);
 
     if (isSelected) {
@@ -118,11 +178,11 @@ export const InterviewForm = () => {
     }
 
     const nextCounts = { ...questionCounts };
-    for (const t of ALL_TYPES) {
+    for (const t of availableTypes) {
       if (nextCounts[t] === undefined) nextCounts[t] = 1;
     }
     form.setValue("questionCounts", nextCounts);
-    form.setValue("types", ALL_TYPES, { shouldValidate: true });
+    form.setValue("types", availableTypes, { shouldValidate: true });
   };
 
   const updateCount = (type: InterviewType, delta: number) => {
@@ -220,25 +280,52 @@ export const InterviewForm = () => {
                 <div className="flex flex-wrap gap-2">
                   {interviewTypeOptions.map((opt) => {
                     const isActive = field.value.includes(opt.value);
+                    const isLocked =
+                      RESUME_GATED_TYPES.has(opt.value) && isResumeGateBlocking;
                     return (
                       <button
                         key={opt.value}
                         type="button"
+                        disabled={isLocked}
                         onClick={() => toggleType(opt.value)}
+                        title={
+                          isLocked
+                            ? (resumeGateMessage ?? undefined)
+                            : undefined
+                        }
                         className={cn(
                           "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border transition-all",
                           isActive
                             ? "bg-primary text-primary-foreground border-primary shadow-sm"
                             : "bg-background border-border hover:border-primary/50 text-muted-foreground hover:text-foreground",
+                          isLocked &&
+                            "opacity-40 cursor-not-allowed grayscale bg-muted/20 border-dashed hover:border-border",
                         )}
                       >
-                        <opt.icon className="size-4" />
+                        {isLocked ? (
+                          <Lock className="size-4" />
+                        ) : (
+                          <opt.icon className="size-4" />
+                        )}
                         {opt.label}
                       </button>
                     );
                   })}
                 </div>
               </FormControl>
+              {resumeGateMessage && (
+                <Alert variant={isResumeError ? "destructive" : "default"}>
+                  <TriangleAlert className="size-4" />
+                  <AlertDescription>
+                    {resumeGateMessage}{" "}
+                    {!isResumeError && (
+                      <Link href="/resume" className="font-medium">
+                        Submit your resume
+                      </Link>
+                    )}
+                  </AlertDescription>
+                </Alert>
+              )}
               <FormMessage />
             </FormItem>
           )}
