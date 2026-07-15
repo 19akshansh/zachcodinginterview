@@ -356,80 +356,107 @@ export const PracticeCodingPanel = ({
     </Tabs>
   );
 
+  const [mobileView, setMobileView] = useState("problem");
+
   return (
     <>
       {geminiKeyModal}
 
-      <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-y-auto gap-5 pr-0.5">
-        <div className="space-y-4">{renderProblemInfo()}</div>
+      <div className="flex md:hidden flex-col flex-1 min-h-0 overflow-hidden">
+        <Tabs
+          value={mobileView}
+          onValueChange={setMobileView}
+          className="flex-1 flex flex-col min-h-0"
+        >
+          <TabsList className="grid w-full grid-cols-3 shrink-0 rounded-none border-b bg-background">
+            <TabsTrigger value="problem" className="text-xs">
+              Problem
+            </TabsTrigger>
+            <TabsTrigger value="editor" className="text-xs">
+              Code
+            </TabsTrigger>
+            <TabsTrigger value="results" className="text-xs">
+              Results
+            </TabsTrigger>
+          </TabsList>
 
-        <div className="flex flex-col gap-2">
-          {renderLanguageAndActions()}
-          <CodeEditor
-            value={code}
-            onChange={setCode}
-            language={language}
-            height="420px"
-            className="h-[420px]"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            className="self-start"
-            onClick={handleHint}
-            disabled={getHint.isPending || hintLevel >= 3}
-          >
-            {getHint.isPending ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : (
-              <Sparkles className="size-3.5" />
-            )}
-            {hintLevel >= 3 ? "No hints left" : `Get a hint (${hintLevel}/3 used)`}
-          </Button>
-          <GeminiKeyNotice message="Add a Gemini key to get hints." />
-        </div>
+          <div className="flex-1 overflow-hidden p-4 pb-0">
+            <TabsContent
+              value="problem"
+              className="h-full overflow-y-auto space-y-6 m-0 outline-none"
+            >
+              <div className="space-y-4">{renderProblemInfo()}</div>
+              {renderHintsSection()}
+            </TabsContent>
 
-        <div className="flex flex-col gap-2 pb-2">
-          {renderResultsTabs("mt-2 space-y-2")}
-        </div>
-      </div>
-
-      <ResizablePanelGroup
-        orientation="horizontal"
-        className="hidden md:flex min-h-0 flex-1"
-      >
-        <ResizablePanel defaultSize={38} minSize={25}>
-          <div className="h-full overflow-y-auto pr-4 space-y-4">
-            {renderProblemInfo()}
-            {renderHintsSection()}
-          </div>
-        </ResizablePanel>
-
-        <ResizableHandle withHandle />
-
-        <ResizablePanel defaultSize={62} minSize={35}>
-          <ResizablePanelGroup orientation="vertical" className="h-full pl-4">
-            <ResizablePanel
-              defaultSize={65}
-              minSize={30}
-              className="flex flex-col gap-2"
+            <TabsContent
+              value="editor"
+              className="h-full flex flex-col gap-4 m-0 outline-none"
             >
               {renderLanguageAndActions()}
-              <CodeEditor value={code} onChange={setCode} language={language} />
-            </ResizablePanel>
+              <div className="flex-1 border rounded-lg overflow-hidden min-h-[400px]">
+                <CodeEditor
+                  value={code}
+                  onChange={setCode}
+                  language={language}
+                  height="100%"
+                  className="h-full"
+                />
+              </div>
+              <div className="py-2">
+                <GeminiKeyNotice message="Add a Gemini key to get hints." />
+              </div>
+            </TabsContent>
 
-            <ResizableHandle withHandle />
-
-            <ResizablePanel
-              defaultSize={35}
-              minSize={20}
-              className="pt-3 min-h-0 flex flex-col"
+            <TabsContent
+              value="results"
+              className="h-full flex flex-col m-0 outline-none overflow-hidden"
             >
-              {renderResultsTabs("overflow-y-auto mt-2 space-y-2")}
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+              {renderResultsTabs("flex-1 overflow-y-auto mt-2 space-y-2")}
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+
+     <div className="hidden md:flex flex-1 min-h-0">
+        <ResizablePanelGroup orientation="horizontal" className="flex-1">
+          <ResizablePanel defaultSize={38} minSize={25}>
+            <div className="h-full overflow-y-auto pr-4 space-y-4">
+              {renderProblemInfo()}
+              {renderHintsSection()}
+            </div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle />
+
+          <ResizablePanel defaultSize={62} minSize={35}>
+            <ResizablePanelGroup orientation="vertical" className="h-full pl-4">
+              <ResizablePanel
+                defaultSize={65}
+                minSize={30}
+                className="flex flex-col gap-2"
+              >
+                {renderLanguageAndActions()}
+                <CodeEditor
+                  value={code}
+                  onChange={setCode}
+                  language={language}
+                />
+              </ResizablePanel>
+
+              <ResizableHandle withHandle />
+
+              <ResizablePanel
+                defaultSize={35}
+                minSize={20}
+                className="pt-3 min-h-0 flex flex-col"
+              >
+                {renderResultsTabs("overflow-y-auto mt-2 space-y-2")}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </>
   );
 };
