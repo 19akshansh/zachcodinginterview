@@ -1,30 +1,28 @@
 "use client";
 
-import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useTRPC } from "@/trpc/client";
+import {
+  Check,
+  Lightbulb,
+  Loader2,
+  Lock,
+  Play,
+  SendHorizontal,
+  Sparkles,
+  X,
+} from "lucide-react";
+import { useState } from "react";
 import { CodeEditor } from "@/components/layout/individual/codeEditor";
+import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import {
-  Play,
-  SendHorizontal,
-  Lightbulb,
-  Check,
-  X,
-  Loader2,
-  Sparkles,
-  Lock,
-} from "lucide-react";
-import { cn } from "@/lib/others/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProgrammingLanguage } from "@/config/enums";
-import { languageOptions } from "../types/typeOptions";
 import {
   useGetHint,
   useRunCode,
@@ -32,7 +30,9 @@ import {
 } from "@/features/dashboard/submissions/hooks/useSubmissions";
 import type { TestCaseExecutionResult } from "@/helpers/codeExecution";
 import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
-import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
+import { cn } from "@/lib/others/utils";
+import { useTRPC } from "@/trpc/client";
+import { languageOptions } from "../types/typeOptions";
 
 const EXECUTABLE_LANGUAGES = languageOptions.filter((l) => !l.disabled);
 
@@ -422,42 +422,45 @@ export const SessionCodingPanel = ({
         </div>
       </div>
 
-      <ResizablePanelGroup
-        orientation="horizontal"
-        className="hidden md:flex min-h-0 flex-1"
-      >
-        <ResizablePanel defaultSize={38} minSize={25}>
-          <div className="h-full overflow-y-auto pr-4 space-y-4">
-            {renderProblemInfo()}
-            {renderHintsSection()}
-          </div>
-        </ResizablePanel>
+      <div className="hidden md:flex min-h-0 flex-1">
+        <ResizablePanelGroup orientation="horizontal" className="flex-1">
+          <ResizablePanel defaultSize={38} minSize={25}>
+            <div className="h-full overflow-y-auto pr-4 space-y-4">
+              {renderProblemInfo()}
+              {renderHintsSection()}
+            </div>
+          </ResizablePanel>
 
-        <ResizableHandle withHandle />
+          <ResizableHandle withHandle />
 
-        <ResizablePanel defaultSize={62} minSize={35}>
-          <ResizablePanelGroup orientation="vertical" className="h-full pl-4">
-            <ResizablePanel
-              defaultSize={65}
-              minSize={30}
-              className="flex flex-col gap-2"
-            >
-              {renderLanguageAndActions()}
-              <CodeEditor value={code} onChange={setCode} language={language} />
-            </ResizablePanel>
+          <ResizablePanel defaultSize={62} minSize={35}>
+            <ResizablePanelGroup orientation="vertical" className="h-full pl-4">
+              <ResizablePanel
+                defaultSize={65}
+                minSize={30}
+                className="flex flex-col gap-2"
+              >
+                {renderLanguageAndActions()}
+                <CodeEditor
+                  value={code}
+                  onChange={setCode}
+                  language={language}
+                />
+              </ResizablePanel>
 
-            <ResizableHandle withHandle />
+              <ResizableHandle withHandle />
 
-            <ResizablePanel
-              defaultSize={35}
-              minSize={20}
-              className="pt-3 min-h-0 flex flex-col"
-            >
-              {renderResultsTabs("overflow-y-auto mt-2 space-y-2")}
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
-      </ResizablePanelGroup>
+              <ResizablePanel
+                defaultSize={35}
+                minSize={20}
+                className="pt-3 min-h-0 flex flex-col"
+              >
+                {renderResultsTabs("overflow-y-auto mt-2 space-y-2")}
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </>
   );
 };
