@@ -3,12 +3,14 @@ import type { Prisma } from "@/generated/prisma/client";
 import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { PAGINATION } from "@/config/constants";
+import { PAGINATION, RECRUITER_APPLICATION } from "@/config/constants";
 import {
   InviteStatus,
   InterviewType,
   Difficulty,
   SeniorityLevel,
+  ApplicationStatus,
+  UserRole,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
 import { transporter } from "@/helpers/mail";
@@ -346,4 +348,52 @@ export const recruitersRouter = createTRPCRouter({
         recommendation: `Based on overall scores, ${ranked[0].interview.candidate.name} is the top candidate for this role.`,
       };
     }),
+  applyToBeRecruiter: protectedProcedure
+    .input(
+      z.object({
+        description: z
+          .string()
+          .trim()
+          .min(
+            RECRUITER_APPLICATION.MIN_DESCRIPTION_LENGTH,
+            `Tell us a bit more — at least ${RECRUITER_APPLICATION.MIN_DESCRIPTION_LENGTH} characters.`,
+          )
+          .max(RECRUITER_APPLICATION.MAX_DESCRIPTION_LENGTH),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.auth.user.role !== UserRole.CANDIDATE) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only candidates can apply for recruiter access.",
+        });
+      }
+
+      const existingPending = await prisma.recruiterApplication.findFirst({
+        where: {
+          userId: ctx.auth.user.id,
+          status: ApplicationStatus.PENDING,
+        },
+      });
+
+      if (existingPending) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You already have a pending application.",
+        });
+      }
+
+      return await prisma.recruiterApplication.create({
+        data: {
+          userId: ctx.auth.user.id,
+          description: input.description,
+        },
+      });
+    }),
+  getMyApplication: protectedProcedure.query(async ({ ctx }) => {
+    return await prisma.recruiterApplication.findFirst({
+      where: { userId: ctx.auth.user.id },
+      orderBy: { createdAt: "desc" },
+    });
+  }),
 });

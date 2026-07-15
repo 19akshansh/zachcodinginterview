@@ -84,6 +84,24 @@ export enum InviteStatus {
   COMPLETED = "COMPLETED",
 }
 
+export enum ApplicationStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum QuestionApprovalStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum RecruiterDecision {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+}
+
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   [InterviewType.CODING]: "Coding",
   [InterviewType.BEHAVIORAL]: "Behavioral",

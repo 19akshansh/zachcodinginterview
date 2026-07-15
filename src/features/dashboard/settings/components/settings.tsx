@@ -2,6 +2,7 @@
 
 import {
   AlertTriangleIcon,
+  BriefcaseIcon,
   CreditCardIcon,
   KeyRoundIcon,
   SlidersHorizontalIcon,
@@ -14,6 +15,7 @@ import { ApiKeysTab } from "./apiKeysTab";
 import { BillingTab } from "./billingTab";
 import { DangerZoneTab } from "./dangerZoneTab";
 import { GeneralTab } from "./generalTab";
+import { RecruiterTab } from "./recruiterTab";
 
 export const SettingsHeader = () => (
   <div className="flex flex-col">
@@ -46,6 +48,10 @@ const SettingsData = () => {
             <CreditCardIcon />
             Billing
           </TabsTrigger>
+          <TabsTrigger value="recruiter">
+            <BriefcaseIcon />
+            Recruiter
+          </TabsTrigger>
           <TabsTrigger value="danger-zone">
             <AlertTriangleIcon />
             Danger Zone
@@ -61,6 +67,9 @@ const SettingsData = () => {
       </TabsContent>
       <TabsContent value="billing" className="mt-4 max-w-2xl">
         <BillingTab />
+      </TabsContent>
+      <TabsContent value="recruiter" className="mt-4 max-w-2xl">
+        <RecruiterTab />
       </TabsContent>
       <TabsContent value="danger-zone" className="mt-4 max-w-2xl">
         <DangerZoneTab />
