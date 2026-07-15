@@ -209,14 +209,13 @@ export const AppHeader = () => {
                 {session?.user?.email}
               </p>
             </div>
-            <button
-              type="button"
-              disabled
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground/60 rounded-lg text-left cursor-not-allowed"
+            <Link
+              href="/profile"
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground rounded-lg text-left hover:bg-muted hover:text-foreground transition-colors"
             >
               <User className="w-4 h-4 shrink-0" />
               <span>Profile</span>
-            </button>
+            </Link>
             <button
               type="button"
               onClick={handleLogout}
