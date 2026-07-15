@@ -8,6 +8,7 @@ import { useState } from "react";
 import { makeQueryClient } from "./query-client";
 import type { AppRouter } from "./routers/_app";
 import superjson from "superjson";
+import { GEMINI_KEY_HEADER, STORAGE_KEYS } from "@/config/constants";
 export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
 let browserQueryClient: QueryClient;
 function getQueryClient() {
@@ -46,6 +47,15 @@ export function TRPCReactProvider(
         httpBatchLink({
           transformer: superjson,
           url: getUrl(),
+          headers() {
+            if (typeof window === "undefined") return {};
+            try {
+              const key = localStorage.getItem(STORAGE_KEYS.GEMINI_API_KEY);
+              return key ? { [GEMINI_KEY_HEADER]: key } : {};
+            } catch {
+              return {};
+            }
+          },
         }),
       ],
     }),

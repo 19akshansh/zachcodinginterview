@@ -8,7 +8,7 @@ export async function autoEndIfExpired<
     startedAt: Date | null;
     timeLimitMinutes: number;
   },
->(interview: T): Promise<T> {
+>(interview: T, apiKey: string | null): Promise<T> {
   if (interview.status !== "IN_PROGRESS" || !interview.startedAt) {
     return interview;
   }
@@ -27,7 +27,7 @@ export async function autoEndIfExpired<
   });
 
   if (count > 0) {
-    generateReportForInterview(interview.id).catch((err) => {
+    generateReportForInterview(interview.id, apiKey).catch((err) => {
       console.error("REPORT_GENERATION_FAILED", interview.id, err);
     });
   }

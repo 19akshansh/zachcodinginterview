@@ -5,12 +5,14 @@ import type { Prisma } from "@/generated/prisma/client";
 import { extractPdfText } from "@/helpers/pdfExtract";
 import { scanPdfForMalware } from "@/helpers/malwareScan";
 import { generateFeedbackForResume } from "@/helpers/resumeFeedback";
+import { InvalidGeminiKeyError } from "@/helpers/ai";
 import { deleteResumeFile, uploadResumeFile } from "@/helpers/storage";
 import prisma from "@/lib/db/db";
 import {
   createTRPCRouter,
   protectedProcedure,
   recruiterProcedure,
+  aiProcedure,
 } from "@/trpc/init";
 
 export const resumeRouter = createTRPCRouter({
@@ -233,7 +235,7 @@ export const resumeRouter = createTRPCRouter({
         hasPrevPage: page > 1,
       };
     }),
-  generateFeedback: protectedProcedure.mutation(async ({ ctx }) => {
+  generateFeedback: aiProcedure.mutation(async ({ ctx }) => {
     const resume = await prisma.resume.findUnique({
       where: { userId: ctx.auth.user.id },
       select: { id: true },
@@ -248,8 +250,16 @@ export const resumeRouter = createTRPCRouter({
 
     let feedback: Awaited<ReturnType<typeof generateFeedbackForResume>>;
     try {
-      feedback = await generateFeedbackForResume(resume.id);
+      feedback = await generateFeedbackForResume(ctx.geminiApiKey, resume.id);
     } catch (error) {
+      if (error instanceof InvalidGeminiKeyError) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: error.message,
+          cause: error,
+        });
+      }
+
       console.error("RESUME_FEEDBACK_ERROR", error);
       throw new TRPCError({
         code: "INTERNAL_SERVER_ERROR",

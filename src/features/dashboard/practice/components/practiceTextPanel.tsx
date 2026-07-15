@@ -14,6 +14,8 @@ import {
   useSubmitTextAnswer,
 } from "../hooks/usePractice";
 import { interviewTypeMeta } from "../../interviews/types/typeOptions";
+import { useGeminiKeyModal } from "@/hooks/useGeminiKeyModal";
+import { GeminiKeyNotice } from "@/components/layout/shared/geminiKeyNotice";
 
 const AUTOSAVE_DELAY_MS = DEFAULTS.AUTOSAVE_DELAY_MS;
 
@@ -54,6 +56,8 @@ export const PracticeTextPanel = ({
 
   const saveDraft = useSaveDraftTextAnswer();
   const submitAnswer = useSubmitTextAnswer();
+  const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
+    useGeminiKeyModal();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -89,6 +93,7 @@ export const PracticeTextPanel = ({
           setResult(data.result);
           setFeedback(data.aiFeedback ?? null);
         },
+        onError: (err) => handleGeminiKeyError(err),
       },
     );
   };
@@ -98,6 +103,7 @@ export const PracticeTextPanel = ({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0">
+      {geminiKeyModal}
       <Card className="p-6 space-y-4 overflow-y-auto">
         <div className="flex gap-2">
           <Badge
@@ -173,6 +179,8 @@ export const PracticeTextPanel = ({
             feedback on correctness and structure.
           </p>
         </div>
+
+        <GeminiKeyNotice message="Add a Gemini key to get AI feedback." />
 
         <Button
           onClick={handleGrade}

@@ -3,6 +3,8 @@ export const PAGINATION = {
   DEFAULT_PAGE_SIZE: 5,
   MAX_PAGE_SIZE: 100,
   MIN_PAGE_SIZE: 1,
+
+  DASHBOARD_RECENT_PAGE_SIZE: 5,
 };
 
 export const LIMITS = {
@@ -49,3 +51,5 @@ export const VIRUS_TOTAL = {
 export const STORAGE_KEYS = {
   GEMINI_API_KEY: "zach:gemini-api-key",
 };
+
+export const GEMINI_KEY_HEADER = "x-gemini-key";

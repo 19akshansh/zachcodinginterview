@@ -116,11 +116,14 @@ export const ActivityCalendar = () => {
 
       <TooltipProvider>
         <div className="overflow-x-auto rounded-2xl border border-border bg-card/50 p-4">
-          <div className="inline-flex flex-col gap-2 min-w-max">
+          <div
+            className="flex flex-col gap-2 w-full"
+            style={{ minWidth: columns.length * 14 + 24 }}
+          >
             <div
               className="grid text-[10px] text-muted-foreground"
               style={{
-                gridTemplateColumns: `24px repeat(${columns.length}, 12px)`,
+                gridTemplateColumns: `24px repeat(${columns.length}, minmax(10px, 1fr))`,
                 columnGap: "4px",
               }}
             >
@@ -143,18 +146,23 @@ export const ActivityCalendar = () => {
             <div
               className="grid gap-1"
               style={{
-                gridTemplateColumns: `24px repeat(${columns.length}, 12px)`,
+                gridTemplateColumns: `24px repeat(${columns.length}, minmax(10px, 1fr))`,
                 gridTemplateRows: "repeat(7, 12px)",
                 gridAutoFlow: "column",
                 columnGap: "4px",
                 rowGap: "4px",
+                justifyItems: "center",
               }}
             >
               {WEEKDAY_LABELS.map((label, row) => (
                 <span
                   key={`day-label-${label}`}
                   className="text-[10px] text-muted-foreground leading-3 self-center"
-                  style={{ gridColumn: 1, gridRow: row + 1 }}
+                  style={{
+                    gridColumn: 1,
+                    gridRow: row + 1,
+                    justifySelf: "start",
+                  }}
                 >
                   {VISIBLE_WEEKDAY_ROWS.has(row) ? label : ""}
                 </span>

@@ -1,7 +1,6 @@
 import { headers } from "next/headers";
 import { auth } from "./server";
 import { redirect } from "next/navigation";
-import { envSchem } from "@/config/envSchema";
 
 export const requireAuth = async () => {
   const session = await auth.api.getSession({
@@ -21,7 +20,7 @@ export const requireUnAuth = async () => {
   });
 
   if (session) {
-    redirect("/");
+    redirect("/dashboard");
   }
 };
 
@@ -39,7 +38,7 @@ export const requireAdmin = async () => {
   });
 
   if (session?.user.role !== "ADMIN") {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   return session;
@@ -51,7 +50,7 @@ export const requireRecruiter = async () => {
   });
 
   if (session?.user.role !== "RECRUITER" && session?.user.role !== "ADMIN") {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   return session;

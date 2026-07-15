@@ -4,6 +4,7 @@ import {
   createTRPCRouter,
   protectedProcedure,
   proProcedure,
+  assertGeminiKey,
 } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -80,12 +81,22 @@ export const interviewsRouter = createTRPCRouter({
 
       const questionIds: string[] = [];
 
+      const needsAi = picks.some(
+        (pick) =>
+          pick.type === InterviewType.RESUME_BASED ||
+          pick.type === InterviewType.DOMAIN_SPECIFIC,
+      );
+      if (needsAi) {
+        assertGeminiKey(ctx.geminiApiKey);
+      }
+
       for (const pick of picks) {
         if (
           pick.type === InterviewType.RESUME_BASED ||
           pick.type === InterviewType.DOMAIN_SPECIFIC
         ) {
           const generatedIds = await generateAndPersistResumeQuestions({
+            apiKey: ctx.geminiApiKey as string,
             userId,
             type: pick.type,
             count: pick.count,
@@ -219,7 +230,7 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      return await autoEndIfExpired(interview);
+      return await autoEndIfExpired(interview, ctx.geminiApiKey);
     }),
   getMany: protectedProcedure
     .input(
@@ -323,7 +334,7 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      const checked = await autoEndIfExpired(interview);
+      const checked = await autoEndIfExpired(interview, ctx.geminiApiKey);
       if (checked.status !== "IN_PROGRESS") {
         return checked;
       }
@@ -340,7 +351,7 @@ export const interviewsRouter = createTRPCRouter({
         });
       }
 
-      generateReportForInterview(input.id).catch((err) => {
+      generateReportForInterview(input.id, ctx.geminiApiKey).catch((err) => {
         console.error("REPORT_GENERATION_FAILED", input.id, err);
       });
 

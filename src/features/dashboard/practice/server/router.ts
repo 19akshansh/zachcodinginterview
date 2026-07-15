@@ -1,6 +1,6 @@
 import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, proProcedure } from "@/trpc/init";
+import { createTRPCRouter, proProcedure, proAiProcedure } from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
@@ -344,7 +344,7 @@ export const practiceRouter = createTRPCRouter({
         update: { behavioralAnswer: input.answer },
       });
     }),
-  submitTextAnswer: proProcedure
+  submitTextAnswer: proAiProcedure
     .input(
       z.object({
         questionId: z.string(),
@@ -366,7 +366,7 @@ export const practiceRouter = createTRPCRouter({
 
       await assertQuestionUnlocked(ctx, question);
 
-      const graded = await evaluateTextAnswer({
+      const graded = await evaluateTextAnswer(ctx.geminiApiKey, {
         questionTitle: question.title,
         questionPrompt: question.prompt,
         interviewType: question.type as PracticeType,
@@ -389,8 +389,7 @@ export const practiceRouter = createTRPCRouter({
         },
       });
     }),
-
-  getHint: proProcedure
+  getHint: proAiProcedure
     .input(
       z.object({
         questionId: z.string(),
@@ -427,7 +426,7 @@ export const practiceRouter = createTRPCRouter({
 
       const nextLevel = (currentLevel + 1) as 1 | 2 | 3;
 
-      const hintText = await generateHint({
+      const hintText = await generateHint(ctx.geminiApiKey, {
         questionTitle: question.title,
         questionPrompt: question.prompt,
         code: input.code,
