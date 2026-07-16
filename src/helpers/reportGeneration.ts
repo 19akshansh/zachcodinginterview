@@ -1,12 +1,12 @@
-import prisma from "@/lib/db/db";
+import { type InterviewType, RecruiterDecision } from "@/config/enums";
 import type { Prisma } from "@/generated/prisma/client";
 import {
-  generateInterviewReport,
   type AIReportQuestionPart,
+  generateInterviewReport,
 } from "@/helpers/ai";
 import { generateAndStoreReportPdf } from "@/helpers/reportPdf";
 import { deleteReportPdf } from "@/helpers/storage";
-import { InterviewType } from "@/config/enums";
+import prisma from "@/lib/db/db";
 
 export async function generateReportForInterview(
   interviewId: string,
@@ -74,6 +74,15 @@ export async function generateReportForInterview(
       ...aiReport,
       topicScores: aiReport.topicScores as Prisma.InputJsonValue,
     },
+  });
+
+  await prisma.interview.updateMany({
+    where: {
+      id: interviewId,
+      assignedByRecruiterId: { not: null },
+      recruiterDecision: null,
+    },
+    data: { recruiterDecision: RecruiterDecision.PENDING },
   });
 
   return generateAndStoreReportPdf(report.id);

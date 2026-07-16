@@ -19,6 +19,7 @@ import {
   SeniorityLevel,
   InterviewStatus,
   INTERVIEW_TYPE_LABELS,
+  QuestionApprovalStatus,
 } from "@/config/enums";
 
 export const interviewsRouter = createTRPCRouter({
@@ -111,6 +112,8 @@ export const interviewsRouter = createTRPCRouter({
           where: {
             type: pick.type,
             difficulty: input.difficulty,
+            isPublic: true,
+            approvalStatus: QuestionApprovalStatus.APPROVED,
           },
           take: pick.count * 3,
         });

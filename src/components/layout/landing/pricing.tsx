@@ -58,6 +58,7 @@ export const Pricing = () => {
                 variant="outline"
                 className="mt-6 w-full"
                 render={<Link href="/signup" />}
+                nativeButton={false}
               >
                 Start free
               </Button>
@@ -93,7 +94,11 @@ export const Pricing = () => {
                   </li>
                 ))}
               </ul>
-              <Button className="mt-6 w-full" render={<Link href="/signup" />}>
+              <Button
+                className="mt-6 w-full"
+                nativeButton={false}
+                render={<Link href="/signup" />}
+              >
                 Upgrade to Pro
               </Button>
             </CardContent>

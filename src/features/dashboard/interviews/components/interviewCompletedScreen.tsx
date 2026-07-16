@@ -1,24 +1,24 @@
 "use client";
 
-import { useTRPC } from "@/trpc/client";
 import { useQuery } from "@tanstack/react-query";
+import {
+  AlertTriangle,
+  FileText,
+  Loader2,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  AlertTriangle,
-  Loader2,
-  Sparkles,
-  Trophy,
-  FileText,
-} from "lucide-react";
-import Link from "next/link";
-import { VERDICT_LABELS } from "@/config/enums";
-import type { useSuspenseInterview } from "../hooks/useInterviews";
-import { useRegenerateReport } from "@/features/dashboard/reports/hooks/useReports";
 import { DEFAULTS } from "@/config/constants";
+import { RECRUITER_DECISION_LABELS, VERDICT_LABELS } from "@/config/enums";
+import { useRegenerateReport } from "@/features/dashboard/reports/hooks/useReports";
+import { useTRPC } from "@/trpc/client";
+import type { useSuspenseInterview } from "../hooks/useInterviews";
 
 type InterviewData = ReturnType<typeof useSuspenseInterview>["data"];
 
@@ -156,6 +156,32 @@ export const InterviewCompletedScreen = ({
                 </Badge>
               )}
             </div>
+
+            {data.assignedByRecruiterId && (
+              <div className="flex flex-col items-center gap-1.5 text-sm">
+                <Badge
+                  variant="outline"
+                  className={
+                    data.recruiterDecision === "ACCEPTED"
+                      ? "border-primary/20 bg-primary/10 text-primary"
+                      : data.recruiterDecision === "REJECTED"
+                        ? "border-destructive/20 bg-destructive/10 text-destructive"
+                        : ""
+                  }
+                >
+                  {data.recruiterDecision
+                    ? RECRUITER_DECISION_LABELS[
+                        data.recruiterDecision as keyof typeof RECRUITER_DECISION_LABELS
+                      ]
+                    : "Awaiting recruiter review"}
+                </Badge>
+                {data.recruiterFeedback && (
+                  <p className="max-w-xs text-xs text-muted-foreground">
+                    &ldquo;{data.recruiterFeedback}&rdquo;
+                  </p>
+                )}
+              </div>
+            )}
 
             <Button
               size="lg"

@@ -4,9 +4,9 @@ import {
   AlertTriangleIcon,
   DownloadIcon,
   FileTextIcon,
+  LightbulbIcon,
   Loader2,
   Loader2Icon,
-  LightbulbIcon,
   TrophyIcon,
   UserIcon,
 } from "lucide-react";
@@ -18,11 +18,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Progress,
-  ProgressTrack,
   ProgressIndicator,
+  ProgressTrack,
 } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { INTERVIEW_TYPE_LABELS, VERDICT_LABELS, Verdict } from "@/config/enums";
+import {
+  INTERVIEW_TYPE_LABELS,
+  RECRUITER_DECISION_LABELS,
+  VERDICT_LABELS,
+  Verdict,
+} from "@/config/enums";
 import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
 import { useExportReport, useSuspenseReport } from "../hooks/useReports";
 
@@ -80,6 +85,9 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
       ]
     : null;
   const candidateName = interview?.candidate?.name;
+  const assignedByRecruiterId = interview?.assignedByRecruiterId;
+  const recruiterDecision = interview?.recruiterDecision;
+  const recruiterFeedback = interview?.recruiterFeedback;
 
   useBreadcrumbLabel(reportId, title);
 
@@ -119,7 +127,30 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
                 <span>
                   Generated <RelativeTime date={report.createdAt} />
                 </span>
+                {assignedByRecruiterId && (
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] ${
+                      recruiterDecision === "ACCEPTED"
+                        ? "border-primary/20 bg-primary/10 text-primary"
+                        : recruiterDecision === "REJECTED"
+                          ? "border-destructive/20 bg-destructive/10 text-destructive"
+                          : ""
+                    }`}
+                  >
+                    {recruiterDecision
+                      ? RECRUITER_DECISION_LABELS[
+                          recruiterDecision as keyof typeof RECRUITER_DECISION_LABELS
+                        ]
+                      : "Awaiting recruiter review"}
+                  </Badge>
+                )}
               </div>
+              {assignedByRecruiterId && recruiterFeedback && (
+                <p className="max-w-md text-xs text-muted-foreground italic">
+                  &ldquo;{recruiterFeedback}&rdquo;
+                </p>
+              )}
             </div>
           </div>
 

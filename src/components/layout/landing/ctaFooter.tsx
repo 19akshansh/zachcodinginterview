@@ -31,6 +31,7 @@ export const CtaFooter = () => {
               size="lg"
               className="group/cta mt-7"
               render={<Link href="/signup" />}
+              nativeButton={false}
             >
               Start practicing free
               <ArrowRight className="size-4 transition-transform group-hover/cta:translate-x-0.5" />

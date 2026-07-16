@@ -144,6 +144,12 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   [Verdict.STRONG_NO_HIRE]: "Strong No Hire",
 };
 
+export const RECRUITER_DECISION_LABELS: Record<RecruiterDecision, string> = {
+  [RecruiterDecision.PENDING]: "Awaiting recruiter review",
+  [RecruiterDecision.ACCEPTED]: "Selected by recruiter",
+  [RecruiterDecision.REJECTED]: "Not selected",
+};
+
 export const PRACTICE_TYPES = [
   InterviewType.CODING,
   InterviewType.SYSTEM_DESIGN,

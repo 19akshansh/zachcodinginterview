@@ -12,6 +12,7 @@ import {
   PROGRAMMING_LANGUAGE_LABELS,
   ProgrammingLanguage,
   SeniorityLevel,
+  QuestionApprovalStatus,
 } from "@/config/enums";
 import {
   isExecutableLanguage,
@@ -26,7 +27,13 @@ async function unlockedCountForType(
   type: InterviewType,
   accessPercent: number,
 ) {
-  const total = await prisma.question.count({ where: { type } });
+  const total = await prisma.question.count({
+    where: {
+      type,
+      isPublic: true,
+      approvalStatus: QuestionApprovalStatus.APPROVED,
+    },
+  });
   if (total === 0) return 0;
   if (accessPercent >= 100) return total;
   return Math.max(1, Math.ceil((total * accessPercent) / 100));
@@ -34,7 +41,12 @@ async function unlockedCountForType(
 
 async function rankWithinType(type: InterviewType, createdAt: Date) {
   return prisma.question.count({
-    where: { type, createdAt: { lt: createdAt } },
+    where: {
+      type,
+      createdAt: { lt: createdAt },
+      isPublic: true,
+      approvalStatus: QuestionApprovalStatus.APPROVED,
+    },
   });
 }
 
@@ -96,6 +108,8 @@ export const practiceRouter = createTRPCRouter({
         difficulty,
         seniorityLevel,
         companyTier,
+        isPublic: true,
+        approvalStatus: QuestionApprovalStatus.APPROVED,
         ...(search
           ? {
               OR: [

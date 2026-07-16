@@ -40,10 +40,16 @@ export const Nav = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" render={<Link href="/signin" />} nativeButton={false}>
+          <Button
+            variant="ghost"
+            render={<Link href="/signin" />}
+            nativeButton={false}
+          >
             Sign in
           </Button>
-          <Button render={<Link href="/signup" />}>Get started</Button>
+          <Button render={<Link href="/signup" />} nativeButton={false}>
+            Get started
+          </Button>
         </div>
       </div>
     </header>

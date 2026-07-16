@@ -157,7 +157,7 @@ model RecruiterApplication {
   id           String            @id @default(cuid())
   userId       String
   user         User              @relation("RecruiterApplications", fields: [userId], references: [id], onDelete: Cascade)
-  description  String // why they want recruiter access - company, role, etc.
+  description  String 
   status       ApplicationStatus @default(PENDING)
   reviewedById String?
   reviewedBy   User?             @relation("ReviewedApplications", fields: [reviewedById], references: [id], onDelete: SetNull)

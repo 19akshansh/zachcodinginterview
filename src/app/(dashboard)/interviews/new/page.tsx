@@ -2,7 +2,7 @@ import { requireAuth } from "@/lib/auth/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
-import { InterviewForm } from "@/features/dashboard/interviews/components/interviewForm";
+import { InviteCodeGate } from "@/features/dashboard/interviews/components/inviteCodeGate";
 
 const Page = async () => {
   await requireAuth();
@@ -33,7 +33,7 @@ const Page = async () => {
         </div>
 
         <div className="bg-card border border-border rounded-2xl p-8 shadow-sm">
-          <InterviewForm />
+          <InviteCodeGate />
         </div>
       </div>
     </div>

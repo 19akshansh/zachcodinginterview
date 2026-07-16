@@ -38,6 +38,7 @@ export const Hero = () => {
               size="lg"
               className="group/cta"
               render={<Link href="/signup" />}
+              nativeButton={false}
             >
               Start practicing free
               <ArrowRight className="size-4 transition-transform group-hover/cta:translate-x-0.5" />
@@ -46,6 +47,7 @@ export const Hero = () => {
               size="lg"
               variant="outline"
               render={<Link href="#how-it-works" />}
+              nativeButton={false}
             >
               <PlayCircle className="size-4" />
               See how it works
