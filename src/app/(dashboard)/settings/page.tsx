@@ -6,12 +6,13 @@ import {
   SettingsError,
 } from "@/features/dashboard/settings/components/settings";
 import { prefetchMe } from "@/features/dashboard/settings/server/prefetch";
+import { prefetchMyApplication } from "@/features/dashboard/recruiters/server/prefetch";
 
 const Page = async () => {
   await requireAuth();
 
   try {
-    await prefetchMe();
+    await Promise.all([prefetchMe(), prefetchMyApplication()]);
   } catch {
     console.error("Something went wrong. Please try again.");
   }

@@ -1,17 +1,59 @@
-import prisma from "@/lib/db/db";
-import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import { randomInt } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { PAGINATION } from "@/config/constants";
 import {
-  InviteStatus,
-  InterviewType,
+  PAGINATION,
+  RECRUITER_APPLICATION,
+  RECRUITER_INVITE_QUESTION_COUNT,
+} from "@/config/constants";
+import {
+  ApplicationStatus,
+  CompanyTier,
   Difficulty,
+  InterviewStatus,
+  InterviewType,
+  InviteStatus,
+  QuestionApprovalStatus,
+  RecruiterDecision,
   SeniorityLevel,
+  UserRole,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
+import type { Prisma } from "@/generated/prisma/client";
 import { transporter } from "@/helpers/mail";
+import prisma from "@/lib/db/db";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  recruiterProcedure,
+} from "@/trpc/init";
+
+const INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const INVITE_CODE_LENGTH = 8;
+
+function generateInviteCode(): string {
+  let code = "";
+  for (let i = 0; i < INVITE_CODE_LENGTH; i++) {
+    code += INVITE_CODE_ALPHABET[randomInt(INVITE_CODE_ALPHABET.length)];
+  }
+  return code;
+}
+
+async function generateUniqueInviteCode(): Promise<string> {
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const code = generateInviteCode();
+    const existing = await prisma.recruiterInvite.findUnique({
+      where: { code },
+      select: { id: true },
+    });
+    if (!existing) return code;
+  }
+
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Couldn't generate a unique invite code. Please try again.",
+  });
+}
 
 export async function sendRecruiterInviteEmail(params: {
   to: string;
@@ -19,8 +61,9 @@ export async function sendRecruiterInviteEmail(params: {
   interviewType: string;
   difficulty: string;
   seniorityLevel: string;
+  code: string;
 }) {
-  const { to, recruiterName, interviewType, difficulty, seniorityLevel } =
+  const { to, recruiterName, interviewType, difficulty, seniorityLevel, code } =
     params;
 
   const appUrl = envSchem.NEXT_PUBLIC_APP_URL;
@@ -95,6 +138,36 @@ export async function sendRecruiterInviteEmail(params: {
       <div><strong>Difficulty:</strong> ${difficulty}</div>
       <div><strong>Level:</strong> ${seniorityLevel}</div>
     </div>
+
+    <p
+      style="
+        margin: 0 0 8px;
+        color: #6b7280;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      "
+    >
+      Your invite code
+    </p>
+    <div
+      style="
+        margin: 0 0 32px;
+        padding: 18px;
+        background: #111827;
+        border-radius: 10px;
+        color: #ffffff;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.3em;
+      "
+    >
+      ${code}
+    </div>
+    <p style="margin: -20px 0 32px;color:#6b7280;font-size:13px;">
+      Create an account (or sign in) and enter this code to start your interview.
+    </p>
  
     <a
       href="${ctaUrl}"
@@ -158,36 +231,36 @@ export const recruitersRouter = createTRPCRouter({
         });
       }
 
+      if (
+        input.type === InterviewType.RESUME_BASED ||
+        input.type === InterviewType.DOMAIN_SPECIFIC
+      ) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message:
+            "Resume Based and Domain Specific interviews are generated from the candidate's own resume and can't be assigned by invite.",
+        });
+      }
+
       const recruiterId = ctx.auth.user.id;
 
       const existingCandidate = await prisma.user.findUnique({
         where: { email: input.email },
       });
 
-      const invite = await prisma.$transaction(async (tx) => {
-        const invite = await tx.recruiterInvite.create({
-          data: {
-            recruiterId,
-            candidateEmail: input.email,
-            candidateId: existingCandidate?.id,
-            status: "PENDING",
-          },
-        });
+      const code = await generateUniqueInviteCode();
 
-        if (existingCandidate) {
-          await tx.interview.create({
-            data: {
-              type: input.type,
-              difficulty: input.difficulty,
-              seniorityLevel: input.seniorityLevel,
-              candidateId: existingCandidate.id,
-              assignedByRecruiterId: recruiterId,
-              status: "SCHEDULED",
-            },
-          });
-        }
-
-        return invite;
+      const invite = await prisma.recruiterInvite.create({
+        data: {
+          recruiterId,
+          candidateEmail: input.email,
+          candidateId: existingCandidate?.id,
+          status: "PENDING",
+          code,
+          type: input.type,
+          difficulty: input.difficulty,
+          seniorityLevel: input.seniorityLevel,
+        },
       });
 
       try {
@@ -197,6 +270,7 @@ export const recruitersRouter = createTRPCRouter({
           interviewType: input.type,
           difficulty: input.difficulty,
           seniorityLevel: input.seniorityLevel,
+          code,
         });
       } catch (error) {
         console.error("RECRUITER_INVITE_EMAIL_ERROR", error);
@@ -345,5 +419,321 @@ export const recruitersRouter = createTRPCRouter({
         })),
         recommendation: `Based on overall scores, ${ranked[0].interview.candidate.name} is the top candidate for this role.`,
       };
+    }),
+  applyToBeRecruiter: protectedProcedure
+    .input(
+      z.object({
+        description: z
+          .string()
+          .trim()
+          .min(
+            RECRUITER_APPLICATION.MIN_DESCRIPTION_LENGTH,
+            `Tell us a bit more — at least ${RECRUITER_APPLICATION.MIN_DESCRIPTION_LENGTH} characters.`,
+          )
+          .max(RECRUITER_APPLICATION.MAX_DESCRIPTION_LENGTH),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.auth.user.role !== UserRole.CANDIDATE) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only candidates can apply for recruiter access.",
+        });
+      }
+
+      const existingPending = await prisma.recruiterApplication.findFirst({
+        where: {
+          userId: ctx.auth.user.id,
+          status: ApplicationStatus.PENDING,
+        },
+      });
+
+      if (existingPending) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You already have a pending application.",
+        });
+      }
+
+      return await prisma.recruiterApplication.create({
+        data: {
+          userId: ctx.auth.user.id,
+          description: input.description,
+        },
+      });
+    }),
+  getMyApplication: protectedProcedure.query(async ({ ctx }) => {
+    return await prisma.recruiterApplication.findFirst({
+      where: { userId: ctx.auth.user.id },
+      orderBy: { createdAt: "desc" },
+    });
+  }),
+  createQuestion: recruiterProcedure
+    .input(
+      z.object({
+        type: z.enum(InterviewType),
+        title: z.string().trim().min(1),
+        prompt: z.string().trim().min(1),
+        difficulty: z.enum(Difficulty),
+        seniorityLevel: z.enum(SeniorityLevel).optional(),
+        companyTier: z.enum(CompanyTier).optional(),
+        topics: z.array(z.string()).default([]),
+        isPublic: z.boolean().default(false),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { isPublic, ...rest } = input;
+
+      return await prisma.question.create({
+        data: {
+          ...rest,
+          createdByUserId: ctx.auth.user.id,
+          isPublic,
+          approvalStatus: isPublic
+            ? QuestionApprovalStatus.PENDING
+            : QuestionApprovalStatus.APPROVED,
+        },
+      });
+    }),
+  listMyQuestions: recruiterProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(PAGINATION.DEFAULT_PAGE),
+        pageSize: z
+          .number()
+          .min(PAGINATION.MIN_PAGE_SIZE)
+          .max(PAGINATION.MAX_PAGE_SIZE)
+          .default(PAGINATION.DEFAULT_PAGE_SIZE),
+        search: z.string().default(""),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { page, pageSize, search } = input;
+
+      const where: Prisma.QuestionWhereInput = {
+        createdByUserId: ctx.auth.user.id,
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { prompt: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+
+      const [items, totalCount] = await Promise.all([
+        prisma.question.findMany({
+          where,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: { select: { interviewQuestions: true } },
+          },
+        }),
+        prisma.question.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / pageSize);
+
+      return {
+        items,
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+    }),
+  deleteQuestion: recruiterProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const question = await prisma.question.findUnique({
+        where: { id: input.id },
+        include: { _count: { select: { interviewQuestions: true } } },
+      });
+
+      if (!question || question.createdByUserId !== ctx.auth.user.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Question not found.",
+        });
+      }
+
+      if (question._count.interviewQuestions > 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "This question is already used in a candidate's interview and can't be deleted.",
+        });
+      }
+
+      return await prisma.question.delete({ where: { id: input.id } });
+    }),
+  redeemInviteCode: protectedProcedure
+    .input(z.object({ code: z.string().trim().min(1) }))
+    .mutation(async ({ ctx, input }) => {
+      const code = input.code.trim().toUpperCase();
+
+      const invite = await prisma.recruiterInvite.findUnique({
+        where: { code },
+      });
+
+      if (
+        !invite ||
+        invite.status !== "PENDING" ||
+        invite.interviewId !== null
+      ) {
+        return { found: false as const };
+      }
+
+      const questionPool = await prisma.question.findMany({
+        where: {
+          type: invite.type,
+          difficulty: invite.difficulty,
+          OR: [
+            { isPublic: true, approvalStatus: QuestionApprovalStatus.APPROVED },
+            { createdByUserId: invite.recruiterId },
+          ],
+        },
+        take: RECRUITER_INVITE_QUESTION_COUNT * 3,
+      });
+
+      if (questionPool.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message:
+            "No questions are available for this invite's configuration yet. Ask the recruiter to add one, or try again later.",
+        });
+      }
+
+      const questionIds = [...questionPool]
+        .sort(() => Math.random() - 0.5)
+        .slice(0, RECRUITER_INVITE_QUESTION_COUNT)
+        .map((q) => q.id);
+
+      const interview = await prisma.$transaction(async (tx) => {
+        const created = await tx.interview.create({
+          data: {
+            type: invite.type,
+            difficulty: invite.difficulty,
+            seniorityLevel: invite.seniorityLevel,
+            candidateId: ctx.auth.user.id,
+            assignedByRecruiterId: invite.recruiterId,
+            status: "SCHEDULED",
+            questions: {
+              create: questionIds.map((questionId, order) => ({
+                questionId,
+                order,
+              })),
+            },
+          },
+        });
+
+        await tx.recruiterInvite.update({
+          where: { id: invite.id },
+          data: {
+            interviewId: created.id,
+            status: "ACCEPTED",
+            respondedAt: new Date(),
+            candidateId: ctx.auth.user.id,
+          },
+        });
+
+        return created;
+      });
+
+      return { found: true as const, interviewId: interview.id };
+    }),
+  listReviewQueue: recruiterProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(PAGINATION.DEFAULT_PAGE),
+        pageSize: z
+          .number()
+          .min(PAGINATION.MIN_PAGE_SIZE)
+          .max(PAGINATION.MAX_PAGE_SIZE)
+          .default(PAGINATION.DEFAULT_PAGE_SIZE),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { page, pageSize } = input;
+
+      const where: Prisma.InterviewWhereInput = {
+        assignedByRecruiterId: ctx.auth.user.id,
+        status: InterviewStatus.COMPLETED,
+        recruiterDecision: RecruiterDecision.PENDING,
+      };
+
+      const [items, totalCount] = await Promise.all([
+        prisma.interview.findMany({
+          where,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          orderBy: { endedAt: "asc" },
+          include: {
+            candidate: { select: { name: true, email: true, image: true } },
+            report: { select: { id: true, overallScore: true, verdict: true } },
+          },
+        }),
+        prisma.interview.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / pageSize);
+
+      return {
+        items,
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+    }),
+  decide: recruiterProcedure
+    .input(
+      z.object({
+        interviewId: z.string(),
+        decision: z.enum(["ACCEPTED", "REJECTED"] as const),
+        feedback: z.string().trim().max(2000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const interview = await prisma.interview.findUnique({
+        where: { id: input.interviewId },
+      });
+
+      if (!interview || interview.assignedByRecruiterId !== ctx.auth.user.id) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Interview not found.",
+        });
+      }
+
+      if (interview.status !== InterviewStatus.COMPLETED) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "This interview hasn't been completed yet.",
+        });
+      }
+
+      if (interview.recruiterDecision !== RecruiterDecision.PENDING) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "You've already made a decision on this candidate.",
+        });
+      }
+
+      return await prisma.interview.update({
+        where: { id: input.interviewId },
+        data: {
+          recruiterDecision: input.decision,
+          recruiterDecisionAt: new Date(),
+          recruiterFeedback: input.feedback || null,
+        },
+      });
     }),
 });

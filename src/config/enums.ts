@@ -84,6 +84,24 @@ export enum InviteStatus {
   COMPLETED = "COMPLETED",
 }
 
+export enum ApplicationStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum QuestionApprovalStatus {
+  PENDING = "PENDING",
+  APPROVED = "APPROVED",
+  REJECTED = "REJECTED",
+}
+
+export enum RecruiterDecision {
+  PENDING = "PENDING",
+  ACCEPTED = "ACCEPTED",
+  REJECTED = "REJECTED",
+}
+
 export const INTERVIEW_TYPE_LABELS: Record<InterviewType, string> = {
   [InterviewType.CODING]: "Coding",
   [InterviewType.BEHAVIORAL]: "Behavioral",
@@ -124,6 +142,12 @@ export const VERDICT_LABELS: Record<Verdict, string> = {
   [Verdict.LEAN_HIRE]: "Lean Hire",
   [Verdict.NO_HIRE]: "No Hire",
   [Verdict.STRONG_NO_HIRE]: "Strong No Hire",
+};
+
+export const RECRUITER_DECISION_LABELS: Record<RecruiterDecision, string> = {
+  [RecruiterDecision.PENDING]: "Awaiting recruiter review",
+  [RecruiterDecision.ACCEPTED]: "Selected by recruiter",
+  [RecruiterDecision.REJECTED]: "Not selected",
 };
 
 export const PRACTICE_TYPES = [

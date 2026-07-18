@@ -53,3 +53,10 @@ export const STORAGE_KEYS = {
 };
 
 export const GEMINI_KEY_HEADER = "x-gemini-key";
+
+export const RECRUITER_APPLICATION = {
+  MIN_DESCRIPTION_LENGTH: 40,
+  MAX_DESCRIPTION_LENGTH: 2000,
+};
+
+export const RECRUITER_INVITE_QUESTION_COUNT = 3;

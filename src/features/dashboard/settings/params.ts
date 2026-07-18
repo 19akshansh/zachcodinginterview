@@ -4,6 +4,7 @@ export const SETTINGS_TABS = [
   "general",
   "api-keys",
   "billing",
+  "recruiter",
   "danger-zone",
 ] as const;
 

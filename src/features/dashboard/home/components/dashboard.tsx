@@ -79,7 +79,13 @@ const QUICK_ACTIONS = [
 
 const DashboardHeader = () => {
   const { data: session } = authClient.useSession();
-  const firstName = session?.user?.name?.split(" ")[0];
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const firstName = mounted ? session?.user?.name?.split(" ")[0] : undefined;
 
   return (
     <EntityHeader

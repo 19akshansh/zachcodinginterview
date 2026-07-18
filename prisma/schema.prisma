@@ -98,6 +98,24 @@ enum InviteStatus {
   COMPLETED
 }
 
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum QuestionApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RecruiterDecision {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 model User {
   id            String    @id
   name          String
@@ -126,8 +144,31 @@ model User {
   sentInvites     RecruiterInvite[] @relation("SentInvites")
   receivedInvites RecruiterInvite[] @relation("ReceivedInvites")
 
+  recruiterApplications RecruiterApplication[] @relation("RecruiterApplications")
+  reviewedApplications  RecruiterApplication[] @relation("ReviewedApplications")
+
+  createdQuestions Question[] @relation("CreatedQuestions")
+
   @@unique([email])
   @@map("user")
+}
+
+model RecruiterApplication {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation("RecruiterApplications", fields: [userId], references: [id], onDelete: Cascade)
+  description  String 
+  status       ApplicationStatus @default(PENDING)
+  reviewedById String?
+  reviewedBy   User?             @relation("ReviewedApplications", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt   DateTime?
+  reviewNote   String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("recruiter_application")
 }
 
 model Session {
@@ -201,12 +242,19 @@ model Question {
   topics         String[]
   createdAt      DateTime        @default(now())
 
+  createdByUserId String?
+  createdBy       User?                  @relation("CreatedQuestions", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  isPublic        Boolean                @default(true)
+  approvalStatus  QuestionApprovalStatus @default(APPROVED)
+
   interviewQuestions InterviewQuestion[]
   testCases           TestCase[]
   practiceAttempts    PracticeAttempt[]
 
   @@index([type])
   @@index([difficulty])
+  @@index([createdByUserId])
+  @@index([isPublic, approvalStatus])
   @@map("question")
 }
 
@@ -239,6 +287,10 @@ model Interview {
   assignedByRecruiterId String?
   assignedByRecruiter   User?   @relation("RecruiterAssignedInterviews", fields: [assignedByRecruiterId], references: [id], onDelete: SetNull)
 
+  recruiterDecision   RecruiterDecision?
+  recruiterDecisionAt DateTime?
+  recruiterFeedback   String?
+
   questions InterviewQuestion[]
 
   startedAt DateTime?
@@ -249,9 +301,12 @@ model Interview {
 
   report Report?
 
+  invite RecruiterInvite?
+
   @@index([candidateId])
   @@index([assignedByRecruiterId])
   @@index([status])
+  @@index([recruiterDecision])
   @@map("interview")
 }
 
@@ -385,7 +440,16 @@ model RecruiterInvite {
   createdAt      DateTime     @default(now())
   respondedAt    DateTime?
 
+  code           String         @unique
+  type           InterviewType
+  difficulty     Difficulty
+  seniorityLevel SeniorityLevel
+
+  interviewId String?    @unique
+  interview   Interview? @relation(fields: [interviewId], references: [id], onDelete: SetNull)
+
   @@index([recruiterId])
   @@index([candidateEmail])
+  @@index([code])
   @@map("recruiter_invite")
 }

@@ -9,6 +9,7 @@ import {
   Difficulty,
   SeniorityLevel,
   CompanyTier,
+  QuestionApprovalStatus,
 } from "@/config/enums";
 
 export const questionsRouter = createTRPCRouter({
@@ -126,6 +127,8 @@ export const questionsRouter = createTRPCRouter({
       const where: Prisma.QuestionWhereInput = {
         type,
         difficulty,
+        isPublic: true,
+        approvalStatus: QuestionApprovalStatus.APPROVED,
         ...(search
           ? {
               OR: [
@@ -173,6 +176,8 @@ export const questionsRouter = createTRPCRouter({
       const where: Prisma.QuestionWhereInput = {
         type,
         difficulty,
+        isPublic: true,
+        approvalStatus: QuestionApprovalStatus.APPROVED,
         ...(topics && topics.length > 0 ? { topics: { hasSome: topics } } : {}),
       };
 

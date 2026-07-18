@@ -36,6 +36,7 @@ export const Recruiters = () => {
               variant="outline"
               className="mt-1"
               render={<Link href="/signup" />}
+              nativeButton={false}
             >
               Invite a candidate
             </Button>
