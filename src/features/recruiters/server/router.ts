@@ -21,6 +21,7 @@ import {
 import { envSchem } from "@/config/envSchema";
 import type { Prisma } from "@/generated/prisma/client";
 import { transporter } from "@/helpers/mail";
+import { checkRateLimit } from "@/helpers/rateLimit";
 import prisma from "@/lib/db/db";
 import {
   adminProcedure,
@@ -599,13 +600,24 @@ export const recruitersRouter = createTRPCRouter({
           .max(PAGINATION.MAX_PAGE_SIZE)
           .default(PAGINATION.DEFAULT_PAGE_SIZE),
         status: z.enum(ApplicationStatus).optional(),
+        search: z.string().default(""),
       }),
     )
     .query(async ({ input }) => {
-      const { page, pageSize, status } = input;
+      const { page, pageSize, status, search } = input;
 
       const where: Prisma.RecruiterApplicationWhereInput = {
         ...(status ? { status } : {}),
+        ...(search
+          ? {
+              user: {
+                OR: [
+                  { name: { contains: search, mode: "insensitive" } },
+                  { email: { contains: search, mode: "insensitive" } },
+                ],
+              },
+            }
+          : {}),
       };
 
       const [items, totalCount] = await Promise.all([
@@ -810,6 +822,20 @@ export const recruitersRouter = createTRPCRouter({
   redeemInviteCode: protectedProcedure
     .input(z.object({ code: z.string().trim().min(1) }))
     .mutation(async ({ ctx, input }) => {
+      const { allowed, retryAfterMs } = checkRateLimit(
+        `redeemInviteCode:${ctx.auth.user.id}`,
+        { limit: 5, windowMs: 60_000 },
+      );
+
+      if (!allowed) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: `Too many attempts. Please try again in ${Math.ceil(
+            retryAfterMs / 1000,
+          )}s.`,
+        });
+      }
+
       const code = input.code.trim().toUpperCase();
 
       const invite = await prisma.recruiterInvite.findUnique({
@@ -819,7 +845,9 @@ export const recruitersRouter = createTRPCRouter({
       if (
         !invite ||
         invite.status !== "PENDING" ||
-        invite.interviewId !== null
+        invite.interviewId !== null ||
+        invite.candidateEmail.toLowerCase() !==
+          ctx.auth.user.email.toLowerCase()
       ) {
         return { found: false as const };
       }

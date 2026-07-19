@@ -13,20 +13,21 @@ type ApplicationsPageProps = {
     page?: string;
     pageSize?: string;
     status?: string;
+    search?: string;
   }>;
 };
 
 const Page = async (props: ApplicationsPageProps) => {
   await requireAdmin();
-  const { page, pageSize, status } = await adminApplicationsParamsLoader(
-    props.searchParams,
-  );
+  const { page, pageSize, status, search } =
+    await adminApplicationsParamsLoader(props.searchParams);
 
   try {
     await prefetchAdminApplications({
       page,
       pageSize,
       status: status ?? undefined,
+      search,
     });
   } catch {
     console.error("Something went wrong. Please try again.");

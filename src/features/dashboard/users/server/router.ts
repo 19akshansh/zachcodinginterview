@@ -8,7 +8,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
-import { UserRole, ProfileVisibility } from "@/config/enums";
+import { UserRole, ProfileVisibility, InterviewStatus } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
 import { transporter } from "@/helpers/mail";
 
@@ -209,6 +209,12 @@ export const usersRouter = createTRPCRouter({
         },
       });
 
+      if (input.banned) {
+        await prisma.session.deleteMany({
+          where: { userId: input.userId },
+        });
+      }
+
       try {
         if (input.banned) {
           await transporter.sendMail({
@@ -293,5 +299,133 @@ export const usersRouter = createTRPCRouter({
       return await prisma.user.delete({
         where: { id: input.id },
       });
+    }),
+  getById: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const viewer = ctx.auth.user;
+
+      const target = await prisma.user.findUnique({
+        where: { id: input.userId },
+        include: { settings: true },
+      });
+
+      if (!target) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found." });
+      }
+
+      const isAdmin = viewer.role === UserRole.ADMIN;
+      const isSelf = viewer.id === target.id;
+
+      if (!isAdmin && !isSelf) {
+        const isPublicCandidate =
+          target.role === UserRole.CANDIDATE &&
+          target.settings?.profileVisibility === ProfileVisibility.PUBLIC;
+
+        if (!isPublicCandidate) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found.",
+          });
+        }
+      }
+
+      const tier: "admin" | "self" | "recruiter" | "public" = isAdmin
+        ? "admin"
+        : isSelf
+          ? "self"
+          : viewer.role === UserRole.RECRUITER
+            ? "recruiter"
+            : "public";
+
+      const { _count } = await prisma.user.findUniqueOrThrow({
+        where: { id: target.id },
+        select: {
+          _count: { select: { interviews: true, practiceAttempts: true } },
+        },
+      });
+
+      const profile = {
+        id: target.id,
+        name: target.name,
+        image: target.image,
+        bio: target.bio,
+        role: target.role,
+        createdAt: target.createdAt,
+        counts: _count,
+      };
+
+      if (tier === "public") {
+        return { tier, profile } as const;
+      }
+
+      const interviews = await prisma.interview.findMany({
+        where: {
+          candidateId: target.id,
+          ...(tier === "recruiter"
+            ? { status: InterviewStatus.COMPLETED }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          title: true,
+          type: true,
+          status: true,
+          difficulty: true,
+          seniorityLevel: true,
+          createdAt: true,
+          report: {
+            select: { id: true, overallScore: true, verdict: true },
+          },
+        },
+      });
+
+      if (tier === "recruiter") {
+        return { tier, profile, interviews } as const;
+      }
+
+      const [practiceAttempts, recruiterApplications] = await Promise.all([
+        prisma.practiceAttempt.findMany({
+          where: { userId: target.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            result: true,
+            createdAt: true,
+            question: {
+              select: { title: true, type: true, difficulty: true },
+            },
+          },
+        }),
+        prisma.recruiterApplication.findMany({
+          where: { userId: target.id },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            status: true,
+            description: true,
+            reviewNote: true,
+            reviewedAt: true,
+            createdAt: true,
+          },
+        }),
+      ]);
+
+      return {
+        tier,
+        profile: {
+          ...profile,
+          email: target.email,
+          banned: target.banned,
+          bannedReason: target.bannedReason,
+          bannedAt: target.bannedAt,
+          profileVisibility:
+            target.settings?.profileVisibility ?? ProfileVisibility.PRIVATE,
+        },
+        interviews,
+        practiceAttempts,
+        recruiterApplications,
+      } as const;
     }),
 });

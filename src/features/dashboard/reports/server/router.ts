@@ -7,6 +7,7 @@ import { PAGINATION } from "@/config/constants";
 import { Verdict } from "@/config/enums";
 import { generateReportForInterview } from "@/helpers/reportGeneration";
 import { generateAndStoreReportPdf } from "@/helpers/reportPdf";
+import { getReportPdfDownloadUrl } from "@/helpers/storage";
 
 export const reportsRouter = createTRPCRouter({
   generate: protectedProcedure
@@ -279,11 +280,15 @@ export const reportsRouter = createTRPCRouter({
         throw new TRPCError({ code: "FORBIDDEN" });
       }
 
-      if (report.pdfUrl) return { url: report.pdfUrl };
+      if (report.pdfUrl) {
+        const url = await getReportPdfDownloadUrl(report.pdfUrl);
+        return { url };
+      }
 
       try {
         const updated = await generateAndStoreReportPdf(report.id);
-        return { url: updated.pdfUrl! };
+        const url = await getReportPdfDownloadUrl(updated.pdfUrl!);
+        return { url };
       } catch (error) {
         console.error("PDF_GEN_ERROR", error);
         throw new TRPCError({
