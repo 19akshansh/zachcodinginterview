@@ -17,7 +17,7 @@ import {
 } from "@/config/enums";
 
 export const questionsRouter = createTRPCRouter({
-  create: protectedProcedure
+  create: adminProcedure
     .input(
       z.object({
         type: z.enum(InterviewType),
@@ -29,19 +29,12 @@ export const questionsRouter = createTRPCRouter({
         topics: z.array(z.string()).default([]),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.auth.user.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
-        });
-      }
-
+    .mutation(async ({ input }) => {
       return await prisma.question.create({
         data: input,
       });
     }),
-  update: protectedProcedure
+  update: adminProcedure
     .input(
       z.object({
         id: z.string(),
@@ -54,27 +47,33 @@ export const questionsRouter = createTRPCRouter({
         topics: z.array(z.string()).optional(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.auth.user.role !== "ADMIN") {
-        throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
-        });
-      }
-
+    .mutation(async ({ input }) => {
       const { id, ...data } = input;
       return await prisma.question.update({
         where: { id },
         data,
       });
     }),
-  delete: protectedProcedure
+  delete: adminProcedure
     .input(z.object({ id: z.string() }))
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.auth.user.role !== "ADMIN") {
+    .mutation(async ({ input }) => {
+      const question = await prisma.question.findUnique({
+        where: { id: input.id },
+        include: { _count: { select: { interviewQuestions: true } } },
+      });
+
+      if (!question) {
         throw new TRPCError({
-          code: "FORBIDDEN",
-          message: "Admin access required",
+          code: "NOT_FOUND",
+          message: "Question not found.",
+        });
+      }
+
+      if (question._count.interviewQuestions > 0) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message:
+            "This question is already used in a candidate's interview and can't be deleted.",
         });
       }
 
@@ -213,14 +212,23 @@ export const questionsRouter = createTRPCRouter({
           .max(PAGINATION.MAX_PAGE_SIZE)
           .default(PAGINATION.DEFAULT_PAGE_SIZE),
         status: z.enum(QuestionApprovalStatus).optional(),
+        search: z.string().default(""),
       }),
     )
     .query(async ({ input }) => {
-      const { page, pageSize, status } = input;
+      const { page, pageSize, status, search } = input;
 
       const where: Prisma.QuestionWhereInput = {
         isPublic: true,
         ...(status ? { approvalStatus: status } : {}),
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { prompt: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
       };
 
       const [items, totalCount] = await Promise.all([
@@ -233,6 +241,7 @@ export const questionsRouter = createTRPCRouter({
             createdBy: {
               select: { id: true, name: true, email: true, image: true },
             },
+            _count: { select: { interviewQuestions: true } },
           },
         }),
         prisma.question.count({ where }),

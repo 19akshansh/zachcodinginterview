@@ -33,6 +33,13 @@ export const RESUME = {
   ALLOWED_EXTENSION: ".pdf",
 };
 
+export const PRIVATE_FILE_ACCESS = {
+  // How long a signed download URL for a private resume/report PDF stays
+  // valid. Kept short since these are minted fresh on every authorized
+  // request rather than persisted anywhere.
+  SIGNED_URL_TTL_MS: 5 * 60 * 1000,
+};
+
 export const AVATAR = {
   MAX_FILE_SIZE_BYTES: 2 * 1024 * 1024,
   ALLOWED_MIME_TYPES: ["image/png", "image/jpeg", "image/svg+xml"],

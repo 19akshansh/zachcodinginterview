@@ -7,6 +7,7 @@ import {
   EntityHeader,
   EntityList,
   EntityPagination,
+  EntitySearch,
   ErrorView,
   LoadingView,
 } from "@/components/layout/shared/entityComponents";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ApplicationStatus, APPLICATION_STATUS_LABELS } from "@/config/enums";
+import { useEntitySearch } from "@/hooks/useEntitySearch";
 import { ApplicationReviewDialog } from "./applicationReviewDialog";
 import { useSuspenseAdminApplications } from "../hooks/useAdmin";
 import { useAdminApplicationsParams } from "../hooks/useAdminParams";
@@ -102,9 +104,7 @@ const ApplicationRow = ({ application }: { application: ApplicationItem }) => {
 
           {!isPending && application.reviewNote && (
             <div className="rounded-lg border bg-muted/20 px-3 py-2 text-xs whitespace-pre-wrap break-words">
-              <span className="font-medium text-foreground">
-                Your note:{" "}
-              </span>
+              <span className="font-medium text-foreground">Your note: </span>
               <span className="text-muted-foreground">
                 {application.reviewNote}
               </span>
@@ -148,26 +148,37 @@ export const ApplicationsHeader = () => (
 
 export const ApplicationsTabs = () => {
   const [params, setParams] = useAdminApplicationsParams();
+  const { searchValue, onSearchChange } = useEntitySearch({
+    params,
+    setParams,
+  });
 
   return (
-    <Tabs
-      value={params.status ?? ApplicationStatus.PENDING}
-      onValueChange={(value) =>
-        setParams({
-          ...params,
-          status: value as ApplicationStatus,
-          page: 1,
-        })
-      }
-    >
-      <TabsList>
-        {STATUS_TABS.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value}>
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Tabs
+        value={params.status ?? ApplicationStatus.PENDING}
+        onValueChange={(value) =>
+          setParams({
+            ...params,
+            status: value as ApplicationStatus,
+            page: 1,
+          })
+        }
+      >
+        <TabsList>
+          {STATUS_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <EntitySearch
+        value={searchValue}
+        onChange={onSearchChange}
+        placeholder="Search applicants..."
+      />
+    </div>
   );
 };
 

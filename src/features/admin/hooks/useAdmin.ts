@@ -160,3 +160,75 @@ export const useDecideQuestionApproval = () => {
     }),
   );
 };
+
+export const useAdminCreateQuestion = () => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    trpc.questions.create.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.questions.listPendingReview.queryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.admin.getOverview.queryKey(),
+        });
+        toast.success("Question created.");
+      },
+      onError: (error) => {
+        toast.error(
+          error.message || "Failed to create question. Please try again.",
+        );
+      },
+    }),
+  );
+};
+
+export const useAdminUpdateQuestion = () => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    trpc.questions.update.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.questions.listPendingReview.queryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.admin.getOverview.queryKey(),
+        });
+        toast.success("Question updated.");
+      },
+      onError: (error) => {
+        toast.error(
+          error.message || "Failed to update question. Please try again.",
+        );
+      },
+    }),
+  );
+};
+
+export const useAdminDeleteQuestion = () => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    trpc.questions.delete.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.questions.listPendingReview.queryKey(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: trpc.admin.getOverview.queryKey(),
+        });
+        toast.success("Question deleted.");
+      },
+      onError: (error) => {
+        toast.error(
+          error.message || "Failed to delete question. Please try again.",
+        );
+      },
+    }),
+  );
+};

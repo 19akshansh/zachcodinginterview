@@ -26,6 +26,7 @@ export const adminApplicationsParams = {
   pageSize: parseAsInteger
     .withDefault(PAGINATION.DEFAULT_PAGE_SIZE)
     .withOptions({ clearOnDefault: true }),
+  search: parseAsString.withDefault("").withOptions({ clearOnDefault: true }),
   status: parseAsStringEnum<ApplicationStatus>(Object.values(ApplicationStatus))
     .withDefault(ApplicationStatus.PENDING)
     .withOptions({ clearOnDefault: true }),
@@ -38,6 +39,7 @@ export const adminQuestionsParams = {
   pageSize: parseAsInteger
     .withDefault(PAGINATION.DEFAULT_PAGE_SIZE)
     .withOptions({ clearOnDefault: true }),
+  search: parseAsString.withDefault("").withOptions({ clearOnDefault: true }),
   status: parseAsStringEnum<QuestionApprovalStatus>(
     Object.values(QuestionApprovalStatus),
   )

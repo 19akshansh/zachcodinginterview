@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import React from "react";
 import {
   EmptyView,
@@ -49,85 +50,111 @@ const initialsFor = (name: string) =>
     .toUpperCase()
     .slice(0, 2);
 
-const UserRow = ({ user }: { user: UserItem }) => {
+export const UserAdminActions = ({
+  user,
+}: {
+  user: { id: string; name: string; role: UserRole; banned: boolean };
+}) => {
   const { data: session } = authClient.useSession();
   const [banOpen, setBanOpen] = React.useState(false);
   const updateRole = useUpdateUserRole();
 
   const isSelf = session?.user?.id === user.id;
-  const isBanned = "banned" in user ? Boolean(user.banned) : false;
 
   return (
     <>
-      <Card className="p-4 shadow-none">
-        <CardContent className="flex flex-col gap-3 p-0 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-3">
-            <Avatar>
-              <AvatarImage src={user.image ?? undefined} alt={user.name} />
-              <AvatarFallback>{initialsFor(user.name)}</AvatarFallback>
-            </Avatar>
-            <div className="flex min-w-0 flex-col gap-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="truncate text-base font-medium">
-                  {user.name}
-                </span>
-                <Badge variant="outline" className="text-[10px] capitalize">
-                  {user.role.toLowerCase()}
-                </Badge>
-                {isBanned && (
-                  <Badge variant="destructive" className="text-[10px]">
-                    Banned
-                  </Badge>
-                )}
-              </div>
-              <p className="truncate text-xs text-muted-foreground">
-                {user.email} · Joined <RelativeTime date={user.createdAt} />
-              </p>
-            </div>
-          </div>
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <Select
+          value={user.role}
+          disabled={isSelf || updateRole.isPending}
+          onValueChange={(role) =>
+            updateRole.mutate({ userId: user.id, role: role as UserRole })
+          }
+        >
+          <SelectTrigger className="w-[130px]" size="sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={UserRole.CANDIDATE}>Candidate</SelectItem>
+            <SelectItem value={UserRole.RECRUITER}>Recruiter</SelectItem>
+            <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            <Select
-              value={user.role}
-              disabled={isSelf || updateRole.isPending}
-              onValueChange={(role) =>
-                updateRole.mutate({ userId: user.id, role: role as UserRole })
-              }
-            >
-              <SelectTrigger className="w-[130px]" size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UserRole.CANDIDATE}>Candidate</SelectItem>
-                <SelectItem value={UserRole.RECRUITER}>Recruiter</SelectItem>
-                <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              type="button"
-              size="sm"
-              variant={isBanned ? "outline" : "destructive"}
-              disabled={isSelf}
-              title={
-                isSelf ? "You can't ban or unban your own account" : undefined
-              }
-              onClick={() => setBanOpen(true)}
-            >
-              {isBanned ? "Unban" : "Ban"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+        <Button
+          type="button"
+          size="sm"
+          variant={user.banned ? "outline" : "destructive"}
+          disabled={isSelf}
+          title={isSelf ? "You can't ban or unban your own account" : undefined}
+          onClick={() => setBanOpen(true)}
+        >
+          {user.banned ? "Unban" : "Ban"}
+        </Button>
+      </div>
 
       <BanDialog
         open={banOpen}
         onOpenChange={setBanOpen}
         userId={user.id}
         userName={user.name}
-        isCurrentlyBanned={isBanned}
+        isCurrentlyBanned={user.banned}
       />
     </>
+  );
+};
+
+const UserRow = ({ user }: { user: UserItem }) => {
+  const router = useRouter();
+  const isBanned = "banned" in user ? Boolean(user.banned) : false;
+
+  return (
+    <Card
+      className="p-4 shadow-none cursor-pointer hover:shadow"
+      onClick={() => router.push(`/users/${user.id}`)}
+    >
+      <CardContent className="flex flex-col gap-3 p-0 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-3">
+          <Avatar>
+            <AvatarImage src={user.image ?? undefined} alt={user.name} />
+            <AvatarFallback>{initialsFor(user.name)}</AvatarFallback>
+          </Avatar>
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="truncate text-base font-medium">
+                {user.name}
+              </span>
+              <Badge variant="outline" className="text-[10px] capitalize">
+                {user.role.toLowerCase()}
+              </Badge>
+              {isBanned && (
+                <Badge variant="destructive" className="text-[10px]">
+                  Banned
+                </Badge>
+              )}
+            </div>
+            <p className="truncate text-xs text-muted-foreground">
+              {user.email} · Joined <RelativeTime date={user.createdAt} />
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="flex shrink-0 flex-wrap items-center gap-2"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <UserAdminActions
+            user={{
+              id: user.id,
+              name: user.name,
+              role: user.role as UserRole,
+              banned: isBanned,
+            }}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

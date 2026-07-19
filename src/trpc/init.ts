@@ -80,6 +80,13 @@ export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
     });
   }
 
+  if (session.user.banned) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "Your account has been suspended.",
+    });
+  }
+
   return next({
     ctx: {
       ...ctx,

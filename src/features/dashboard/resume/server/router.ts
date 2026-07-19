@@ -6,7 +6,11 @@ import { extractPdfText } from "@/helpers/pdfExtract";
 import { scanPdfForMalware } from "@/helpers/malwareScan";
 import { generateFeedbackForResume } from "@/helpers/resumeFeedback";
 import { InvalidGeminiKeyError } from "@/helpers/ai";
-import { deleteResumeFile, uploadResumeFile } from "@/helpers/storage";
+import {
+  deleteResumeFile,
+  getResumeDownloadUrl,
+  uploadResumeFile,
+} from "@/helpers/storage";
 import prisma from "@/lib/db/db";
 import {
   createTRPCRouter,
@@ -169,14 +173,22 @@ export const resumeRouter = createTRPCRouter({
 
       if (!resume) return null;
 
-      if (resume.userId !== ctx.auth.user.id) {
+      const isOwner = resume.userId === ctx.auth.user.id;
+      const isAdmin = ctx.auth.user.role === "ADMIN";
+      const isRecruiterAndVisible =
+        ctx.auth.user.role === "RECRUITER" &&
+        resume.visibleToRecruiters === true;
+
+      if (!isOwner && !isAdmin && !isRecruiterAndVisible) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "You do not have access to this resume.",
         });
       }
 
-      return resume;
+      const downloadUrl = await getResumeDownloadUrl(resume.fileUrl);
+
+      return { ...resume, downloadUrl, isOwner };
     }),
   getMany: recruiterProcedure
     .input(
@@ -213,7 +225,14 @@ export const resumeRouter = createTRPCRouter({
           skip: (page - 1) * pageSize,
           take: pageSize,
           orderBy: { updatedAt: "desc" },
-          include: {
+          select: {
+            id: true,
+            fileName: true,
+            fileSize: true,
+            visibleToRecruiters: true,
+            createdAt: true,
+            updatedAt: true,
+            userId: true,
             user: {
               select: { id: true, name: true, image: true, email: true },
             },

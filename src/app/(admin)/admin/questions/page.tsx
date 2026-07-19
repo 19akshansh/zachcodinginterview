@@ -13,12 +13,13 @@ type QuestionsPageProps = {
     page?: string;
     pageSize?: string;
     status?: string;
+    search?: string;
   }>;
 };
 
 const Page = async (props: QuestionsPageProps) => {
   await requireAdmin();
-  const { page, pageSize, status } = await adminQuestionsParamsLoader(
+  const { page, pageSize, status, search } = await adminQuestionsParamsLoader(
     props.searchParams,
   );
 
@@ -27,6 +28,7 @@ const Page = async (props: QuestionsPageProps) => {
       page,
       pageSize,
       status: status ?? undefined,
+      search,
     });
   } catch {
     console.error("Something went wrong. Please try again.");

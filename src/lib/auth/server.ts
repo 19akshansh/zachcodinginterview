@@ -223,6 +223,21 @@ copy and paste this link into your browser:
         defaultValue: "CANDIDATE",
         input: false,
       },
+      banned: {
+        type: "boolean",
+        defaultValue: false,
+        input: false,
+      },
+      bannedReason: {
+        type: "string",
+        required: false,
+        input: false,
+      },
+      bannedAt: {
+        type: "date",
+        required: false,
+        input: false,
+      },
     },
   },
   plugins: [

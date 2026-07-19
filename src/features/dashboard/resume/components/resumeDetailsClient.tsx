@@ -66,7 +66,13 @@ const ScoreBar = ({ label, score }: { label: string; score: number }) => {
   );
 };
 
-const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
+const ResumeFeedbackSection = ({
+  resume,
+  isOwner,
+}: {
+  resume: ResumeData;
+  isOwner: boolean;
+}) => {
   const generateFeedback = useGenerateResumeFeedback();
   const { modal: geminiKeyModal, handleError: handleGeminiKeyError } =
     useGeminiKeyModal();
@@ -79,6 +85,21 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
   const feedback = resume.feedback;
 
   if (!feedback) {
+    if (!isOwner) {
+      return (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+            <div className="size-12 rounded-xl bg-muted flex items-center justify-center">
+              <SparklesIcon className="size-6 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              No AI feedback has been generated for this resume yet.
+            </p>
+          </CardContent>
+        </Card>
+      );
+    }
+
     return (
       <Card>
         {geminiKeyModal}
@@ -148,23 +169,27 @@ const ResumeFeedbackSection = ({ resume }: { resume: ResumeData }) => {
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            <Button
-              variant="outline"
-              disabled={generateFeedback.isPending}
-              onClick={() =>
-                generateFeedback.mutate(undefined, {
-                  onError: (err) => handleGeminiKeyError(err),
-                })
-              }
-            >
-              {generateFeedback.isPending ? (
-                <Loader2Icon className="size-4 animate-spin" />
-              ) : (
-                <RefreshCwIcon className="size-4" />
-              )}
-              Regenerate Feedback
-            </Button>
-            <GeminiKeyNotice message="Add a Gemini key to regenerate." />
+            {isOwner && (
+              <>
+                <Button
+                  variant="outline"
+                  disabled={generateFeedback.isPending}
+                  onClick={() =>
+                    generateFeedback.mutate(undefined, {
+                      onError: (err) => handleGeminiKeyError(err),
+                    })
+                  }
+                >
+                  {generateFeedback.isPending ? (
+                    <Loader2Icon className="size-4 animate-spin" />
+                  ) : (
+                    <RefreshCwIcon className="size-4" />
+                  )}
+                  Regenerate Feedback
+                </Button>
+                <GeminiKeyNotice message="Add a Gemini key to regenerate." />
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -294,7 +319,7 @@ const ResumeDetailsData = ({ resumeId }: { resumeId: string }) => {
             nativeButton={false}
             render={
               <a
-                href={resume.fileUrl}
+                href={resume.downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               />
@@ -306,30 +331,32 @@ const ResumeDetailsData = ({ resumeId }: { resumeId: string }) => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="flex items-center justify-between gap-4 pt-1">
-          <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-medium">Recruiter Visibility</p>
-            <p className="text-xs text-muted-foreground">
-              Allow recruiters and admins to see this resume and its feedback.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            {toggleVisibility.isPending && (
-              <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
-            )}
-            <Switch
-              checked={resume.visibleToRecruiters}
-              disabled={toggleVisibility.isPending}
-              onCheckedChange={(checked) =>
-                toggleVisibility.mutate({ visibleToRecruiters: checked })
-              }
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {resume.isOwner && (
+        <Card>
+          <CardContent className="flex items-center justify-between gap-4 pt-1">
+            <div className="flex flex-col gap-0.5">
+              <p className="text-sm font-medium">Recruiter Visibility</p>
+              <p className="text-xs text-muted-foreground">
+                Allow recruiters and admins to see this resume and its feedback.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {toggleVisibility.isPending && (
+                <Loader2Icon className="size-4 animate-spin text-muted-foreground" />
+              )}
+              <Switch
+                checked={resume.visibleToRecruiters}
+                disabled={toggleVisibility.isPending}
+                onCheckedChange={(checked) =>
+                  toggleVisibility.mutate({ visibleToRecruiters: checked })
+                }
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      <ResumeFeedbackSection resume={resume} />
+      <ResumeFeedbackSection resume={resume} isOwner={resume.isOwner} />
     </div>
   );
 };

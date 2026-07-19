@@ -11,6 +11,10 @@ export const requireAuth = async () => {
     redirect("/signin");
   }
 
+  if (session.user.banned) {
+    redirect("/suspended");
+  }
+
   return session;
 };
 
@@ -37,6 +41,10 @@ export const requireAdmin = async () => {
     headers: await headers(),
   });
 
+  if (session?.user.banned) {
+    redirect("/suspended");
+  }
+
   if (session?.user.role !== "ADMIN") {
     redirect("/dashboard");
   }
@@ -48,6 +56,10 @@ export const requireRecruiter = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+
+  if (session?.user.banned) {
+    redirect("/suspended");
+  }
 
   if (session?.user.role !== "RECRUITER" && session?.user.role !== "ADMIN") {
     redirect("/dashboard");

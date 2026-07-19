@@ -2,11 +2,17 @@
 
 import React from "react";
 import {
+  Loader2Icon,
+  PencilIcon,
+  TrashIcon,
+} from "lucide-react";
+import {
   EmptyView,
   EntityContainer,
   EntityHeader,
   EntityList,
   EntityPagination,
+  EntitySearch,
   ErrorView,
   LoadingView,
 } from "@/components/layout/shared/entityComponents";
@@ -15,16 +21,36 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   INTERVIEW_TYPE_LABELS,
   QUESTION_APPROVAL_STATUS_LABELS,
   QuestionApprovalStatus,
+  Difficulty,
+  InterviewType,
   SENIORITY_LABELS,
+  CompanyTier,
+  SeniorityLevel,
 } from "@/config/enums";
 import { QuestionReviewDialog } from "./questionReviewDialog";
-import { useSuspenseAdminPendingQuestions } from "../hooks/useAdmin";
+import { QuestionEditDialog } from "./questionEditDialog";
+import {
+  useAdminDeleteQuestion,
+  useSuspenseAdminPendingQuestions,
+} from "../hooks/useAdmin";
 import { useAdminQuestionsParams } from "../hooks/useAdminParams";
+import { useEntitySearch } from "@/hooks/useEntitySearch";
 
 type QuestionsQueryResult = ReturnType<typeof useSuspenseAdminPendingQuestions>;
 type QuestionItem = QuestionsQueryResult["data"]["items"][number];
@@ -53,9 +79,12 @@ const initialsFor = (name: string) =>
     .slice(0, 2);
 
 const QuestionRow = ({ question }: { question: QuestionItem }) => {
-  const [open, setOpen] = React.useState(false);
+  const [reviewOpen, setReviewOpen] = React.useState(false);
+  const [editOpen, setEditOpen] = React.useState(false);
   const isPending = question.approvalStatus === QuestionApprovalStatus.PENDING;
   const author = question.createdBy;
+  const deleteQuestion = useAdminDeleteQuestion();
+  const usedInInterview = question._count.interviewQuestions > 0;
 
   return (
     <>
@@ -106,15 +135,64 @@ const QuestionRow = ({ question }: { question: QuestionItem }) => {
               )}
             </div>
 
-            {isPending && (
+            <div className="flex shrink-0 items-center gap-1.5">
+              {isPending && (
+                <Button size="sm" onClick={() => setReviewOpen(true)}>
+                  Review
+                </Button>
+              )}
+
               <Button
-                size="sm"
-                className="shrink-0"
-                onClick={() => setOpen(true)}
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Edit question"
+                onClick={() => setEditOpen(true)}
               >
-                Review
+                <PencilIcon className="size-4" />
               </Button>
-            )}
+
+              <AlertDialog>
+                <AlertDialogTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={usedInInterview || deleteQuestion.isPending}
+                      title={
+                        usedInInterview
+                          ? "Already used in a candidate's interview — can't be deleted"
+                          : "Delete question"
+                      }
+                    >
+                      {deleteQuestion.isPending ? (
+                        <Loader2Icon className="size-4 animate-spin" />
+                      ) : (
+                        <TrashIcon className="size-4 text-destructive" />
+                      )}
+                    </Button>
+                  }
+                />
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This can&apos;t be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Keep it</AlertDialogCancel>
+                    <AlertDialogAction
+                      variant="destructive"
+                      onClick={() => deleteQuestion.mutate({ id: question.id })}
+                    >
+                      Yes, delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
 
           {!isPending && question.reviewNote && (
@@ -132,14 +210,27 @@ const QuestionRow = ({ question }: { question: QuestionItem }) => {
 
       {isPending && (
         <QuestionReviewDialog
-          open={open}
-          onOpenChange={setOpen}
+          open={reviewOpen}
+          onOpenChange={setReviewOpen}
           questionId={question.id}
           title={question.title}
           prompt={question.prompt}
           topics={question.topics}
         />
       )}
+
+      <QuestionEditDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        question={{
+          ...question,
+          type: question.type as unknown as InterviewType,
+          difficulty: question.difficulty as unknown as Difficulty,
+          seniorityLevel:
+            question.seniorityLevel as unknown as SeniorityLevel | null,
+          companyTier: question.companyTier as unknown as CompanyTier | null,
+        }}
+      />
     </>
   );
 };
@@ -157,35 +248,55 @@ export const QuestionsReviewList = ({
   />
 );
 
-export const QuestionsReviewHeader = () => (
-  <EntityHeader
-    title="Question approvals"
-    description="Review public questions submitted by recruiters."
-  />
-);
+export const QuestionsReviewHeader = () => {
+  const [createOpen, setCreateOpen] = React.useState(false);
+
+  return (
+    <>
+      <EntityHeader
+        title="Question approvals"
+        description="Review public questions submitted by recruiters."
+        newButtonLabel="New question"
+        onNew={() => setCreateOpen(true)}
+      />
+      <QuestionEditDialog open={createOpen} onOpenChange={setCreateOpen} />
+    </>
+  );
+};
 
 export const QuestionsReviewTabs = () => {
   const [params, setParams] = useAdminQuestionsParams();
+  const { searchValue, onSearchChange } = useEntitySearch({
+    params,
+    setParams,
+  });
 
   return (
-    <Tabs
-      value={params.status ?? QuestionApprovalStatus.PENDING}
-      onValueChange={(value) =>
-        setParams({
-          ...params,
-          status: value as QuestionApprovalStatus,
-          page: 1,
-        })
-      }
-    >
-      <TabsList>
-        {STATUS_TABS.map((tab) => (
-          <TabsTrigger key={tab.value} value={tab.value}>
-            {tab.label}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </Tabs>
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <Tabs
+        value={params.status ?? QuestionApprovalStatus.PENDING}
+        onValueChange={(value) =>
+          setParams({
+            ...params,
+            status: value as QuestionApprovalStatus,
+            page: 1,
+          })
+        }
+      >
+        <TabsList>
+          {STATUS_TABS.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <EntitySearch
+        value={searchValue}
+        onChange={onSearchChange}
+        placeholder="Search questions..."
+      />
+    </div>
   );
 };
 
