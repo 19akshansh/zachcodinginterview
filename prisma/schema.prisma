@@ -149,6 +149,8 @@ model User {
 
   createdQuestions Question[] @relation("CreatedQuestions")
 
+  reviewedQuestions Question[] @relation("ReviewedQuestions")
+
   @@unique([email])
   @@map("user")
 }
@@ -246,6 +248,11 @@ model Question {
   createdBy       User?                  @relation("CreatedQuestions", fields: [createdByUserId], references: [id], onDelete: SetNull)
   isPublic        Boolean                @default(true)
   approvalStatus  QuestionApprovalStatus @default(APPROVED)
+
+  reviewedByUserId String?
+  reviewedBy       User?     @relation("ReviewedQuestions", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewedAt       DateTime?
+  reviewNote       String?
 
   interviewQuestions InterviewQuestion[]
   testCases           TestCase[]

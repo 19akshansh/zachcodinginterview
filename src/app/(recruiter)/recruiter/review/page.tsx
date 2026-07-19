@@ -2,9 +2,9 @@ import { ErrorBoundary } from "react-error-boundary";
 import {
   ReviewError,
   ReviewQueue,
-} from "@/features/dashboard/recruiters/components/reviewQueue";
-import { recruiterReviewParamsLoader } from "@/features/dashboard/recruiters/server/paramsLoader";
-import { prefetchReviewQueue } from "@/features/dashboard/recruiters/server/prefetch";
+} from "@/features/recruiters/components/reviewQueue";
+import { recruiterReviewParamsLoader } from "@/features/recruiters/server/paramsLoader";
+import { prefetchReviewQueue } from "@/features/recruiters/server/prefetch";
 import { requireRecruiter } from "@/lib/auth/utils";
 import { HydrateClient } from "@/trpc/server";
 

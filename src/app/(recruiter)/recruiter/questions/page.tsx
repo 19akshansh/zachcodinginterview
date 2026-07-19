@@ -4,9 +4,9 @@ import { HydrateClient } from "@/trpc/server";
 import {
   RecruiterQuestionsContainer,
   RecruiterQuestionsError,
-} from "@/features/dashboard/recruiters/components/recruiterQuestionsForm";
-import { recruitersParamsLoader } from "@/features/dashboard/recruiters/server/paramsLoader";
-import { prefetchMyQuestions } from "@/features/dashboard/recruiters/server/prefetch";
+} from "@/features/recruiters/components/recruiterQuestionsForm";
+import { recruitersParamsLoader } from "@/features/recruiters/server/paramsLoader";
+import { prefetchMyQuestions } from "@/features/recruiters/server/prefetch";
 
 type QuestionsPageProps = {
   searchParams: Promise<{

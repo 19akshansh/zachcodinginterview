@@ -1,6 +1,10 @@
 import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import {
+  adminProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+} from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
@@ -198,5 +202,82 @@ export const questionsRouter = createTRPCRouter({
       });
 
       return randomQuestion;
+    }),
+  listPendingReview: adminProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(PAGINATION.DEFAULT_PAGE),
+        pageSize: z
+          .number()
+          .min(PAGINATION.MIN_PAGE_SIZE)
+          .max(PAGINATION.MAX_PAGE_SIZE)
+          .default(PAGINATION.DEFAULT_PAGE_SIZE),
+        status: z.enum(QuestionApprovalStatus).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { page, pageSize, status } = input;
+
+      const where: Prisma.QuestionWhereInput = {
+        isPublic: true,
+        ...(status ? { approvalStatus: status } : {}),
+      };
+
+      const [items, totalCount] = await Promise.all([
+        prisma.question.findMany({
+          where,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          orderBy: { createdAt: "desc" },
+          include: {
+            createdBy: {
+              select: { id: true, name: true, email: true, image: true },
+            },
+          },
+        }),
+        prisma.question.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / pageSize);
+
+      return {
+        items,
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+    }),
+  decideApproval: adminProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        decision: z.enum(["APPROVED", "REJECTED"] as const),
+        reviewNote: z.string().trim().max(1000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const question = await prisma.question.findUnique({
+        where: { id: input.id },
+      });
+
+      if (!question) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Question not found.",
+        });
+      }
+
+      return await prisma.question.update({
+        where: { id: input.id },
+        data: {
+          approvalStatus: input.decision,
+          reviewedByUserId: ctx.auth.user.id,
+          reviewedAt: new Date(),
+          reviewNote: input.reviewNote || null,
+        },
+      });
     }),
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Loader2Icon, TrashIcon } from "lucide-react";
+import { AlertTriangleIcon, Loader2Icon, TrashIcon } from "lucide-react";
 import {
   EmptyView,
   EntityContainer,
@@ -58,65 +58,83 @@ const StatusBadge = ({ question }: { question: QuestionItem }) => {
 const QuestionRow = ({ question }: { question: QuestionItem }) => {
   const deleteQuestion = useDeleteQuestion();
   const usedInInterview = question._count.interviewQuestions > 0;
+  const denyReason =
+    question.approvalStatus === QuestionApprovalStatus.REJECTED
+      ? question.reviewNote
+      : null;
 
   return (
     <Card className="p-4 shadow-none">
-      <CardContent className="flex items-center justify-between gap-4 p-0">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <CardTitle className="truncate text-base font-medium">
-              {question.title}
-            </CardTitle>
-            <StatusBadge question={question} />
-            <Badge variant="secondary" className="text-[10px]">
-              {INTERVIEW_TYPE_LABELS[question.type]}
-            </Badge>
+      <CardContent className="flex flex-col gap-3 p-0">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <CardTitle className="truncate text-base font-medium">
+                {question.title}
+              </CardTitle>
+              <StatusBadge question={question} />
+              <Badge variant="secondary" className="text-[10px]">
+                {INTERVIEW_TYPE_LABELS[question.type]}
+              </Badge>
+            </div>
+            <CardDescription className="line-clamp-2 text-xs">
+              {question.prompt}
+            </CardDescription>
           </div>
-          <CardDescription className="line-clamp-2 text-xs">
-            {question.prompt}
-          </CardDescription>
+
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  disabled={usedInInterview || deleteQuestion.isPending}
+                  title={
+                    usedInInterview
+                      ? "Already used in a candidate's interview — can't be deleted"
+                      : "Delete question"
+                  }
+                >
+                  {deleteQuestion.isPending ? (
+                    <Loader2Icon className="size-4 animate-spin" />
+                  ) : (
+                    <TrashIcon className="size-4 text-destructive" />
+                  )}
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete this question?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This can&apos;t be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Keep it</AlertDialogCancel>
+                <AlertDialogAction
+                  variant="destructive"
+                  onClick={() => deleteQuestion.mutate({ id: question.id })}
+                >
+                  Yes, delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
 
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                disabled={usedInInterview || deleteQuestion.isPending}
-                title={
-                  usedInInterview
-                    ? "Already used in a candidate's interview — can't be deleted"
-                    : "Delete question"
-                }
-              >
-                {deleteQuestion.isPending ? (
-                  <Loader2Icon className="size-4 animate-spin" />
-                ) : (
-                  <TrashIcon className="size-4 text-destructive" />
-                )}
-              </Button>
-            }
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this question?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This can&apos;t be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Keep it</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={() => deleteQuestion.mutate({ id: question.id })}
-              >
-                Yes, delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {denyReason && (
+          <div className="flex w-full items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-destructive">
+            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold">Deny reason</p>
+              <p className="whitespace-pre-wrap break-words text-xs text-destructive/90">
+                {denyReason}
+              </p>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
