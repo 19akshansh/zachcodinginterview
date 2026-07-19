@@ -7,7 +7,7 @@
 Practice coding, behavioral, system design, and resume-based interviews against a real AI interviewer - then get a full report, verdict, and PDF at the end. Recruiters can post real questions, invite real candidates, and review real results.
 
 <p align="center">
-  <a href="https://zachcodinginterview.vercel.com">Website</a>
+  <a href="https://zachcodinginterview.vercel.app">Website</a>
   ·
   <a href="https://github.com/19akshansh/zachcodinginterview/issues">Report Bug</a>
   ·
