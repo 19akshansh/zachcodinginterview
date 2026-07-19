@@ -100,7 +100,7 @@ export const AppHeader = () => {
       fetchOptions: {
         onSuccess: () => {
           toast.success("Logged out successfully");
-          router.push("/signin");
+          router.push("/");
           router.refresh();
         },
         onError: (ctx) => {

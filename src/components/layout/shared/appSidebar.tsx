@@ -5,6 +5,8 @@ import {
   LogOutIcon,
   PlusCircleIcon,
   UserIcon,
+  Users as UsersIcon,
+  SendIcon,
   LayoutDashboard,
   MessagesSquare,
   Dumbbell,
@@ -62,7 +64,12 @@ const navGroups: {
   {
     label: "Admin",
     roles: ["ADMIN"],
-    items: [{ title: "Admin Portal", icon: ShieldCheck, url: "/admin" }],
+    items: [
+      { title: "Overview", icon: ShieldCheck, url: "/admin" },
+      { title: "Users", icon: UsersIcon, url: "/admin/users" },
+      { title: "Applications", icon: SendIcon, url: "/admin/applications" },
+      { title: "Questions", icon: FileText, url: "/admin/questions" },
+    ],
   },
   {
     label: "Recruiter",
@@ -143,7 +150,7 @@ export const AppSidebar = () => {
           queryClient.clear();
 
           toast.success("Logged out successfully");
-          router.push("/signin");
+          router.push("/");
           router.refresh();
         },
         onError: (ctx) => {
@@ -210,9 +217,15 @@ export const AppSidebar = () => {
             <SidebarGroupContent className="px-2 group-data-[state=collapsed]:px-0 mt-1">
               <SidebarMenu>
                 {group.items.map((item) => {
-                  const active =
-                    pathname === item.url ||
-                    pathname.startsWith(`${item.url}/`);
+                  const bestMatch = navGroups
+                    .flatMap((g) => g.items)
+                    .filter(
+                      (i) =>
+                        pathname === i.url || pathname.startsWith(`${i.url}/`),
+                    )
+                    .sort((a, b) => b.url.length - a.url.length)[0];
+
+                  const active = bestMatch?.url === item.url;
                   return (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton

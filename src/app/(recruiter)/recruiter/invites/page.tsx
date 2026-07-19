@@ -1,13 +1,13 @@
 import { ErrorBoundary } from "react-error-boundary";
 import { requireRecruiter } from "@/lib/auth/utils";
 import { HydrateClient } from "@/trpc/server";
-import { InviteForm } from "@/features/dashboard/recruiters/components/inviteForm";
+import { InviteForm } from "@/features/recruiters/components/inviteForm";
 import {
   InvitesError,
   InvitesTable,
-} from "@/features/dashboard/recruiters/components/inviteList";
-import { recruiterInvitesParamsLoader } from "@/features/dashboard/recruiters/server/paramsLoader";
-import { prefetchRecruitersInvited } from "@/features/dashboard/recruiters/server/prefetch";
+} from "@/features/recruiters/components/inviteList";
+import { recruiterInvitesParamsLoader } from "@/features/recruiters/server/paramsLoader";
+import { prefetchRecruitersInvited } from "@/features/recruiters/server/prefetch";
 
 type InvitesPageProps = {
   searchParams: Promise<{

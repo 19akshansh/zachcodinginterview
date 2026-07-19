@@ -31,7 +31,7 @@ import { RECRUITER_APPLICATION } from "@/config/constants";
 import {
   useApplyToBeRecruiter,
   useMyApplication,
-} from "@/features/dashboard/recruiters/hooks/useRecruiters";
+} from "@/features/recruiters/hooks/useRecruiters";
 import { useSuspenseMe } from "../hooks/useSettings";
 
 const ApplyForm = ({

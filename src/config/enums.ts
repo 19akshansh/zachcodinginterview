@@ -150,6 +150,21 @@ export const RECRUITER_DECISION_LABELS: Record<RecruiterDecision, string> = {
   [RecruiterDecision.REJECTED]: "Not selected",
 };
 
+export const QUESTION_APPROVAL_STATUS_LABELS: Record<
+  QuestionApprovalStatus,
+  string
+> = {
+  [QuestionApprovalStatus.PENDING]: "Pending review",
+  [QuestionApprovalStatus.APPROVED]: "Approved",
+  [QuestionApprovalStatus.REJECTED]: "Rejected",
+};
+
+export const APPLICATION_STATUS_LABELS: Record<ApplicationStatus, string> = {
+  [ApplicationStatus.PENDING]: "Pending",
+  [ApplicationStatus.APPROVED]: "Approved",
+  [ApplicationStatus.REJECTED]: "Rejected",
+};
+
 export const PRACTICE_TYPES = [
   InterviewType.CODING,
   InterviewType.SYSTEM_DESIGN,

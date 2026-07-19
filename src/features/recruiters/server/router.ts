@@ -23,6 +23,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { transporter } from "@/helpers/mail";
 import prisma from "@/lib/db/db";
 import {
+  adminProcedure,
   createTRPCRouter,
   protectedProcedure,
   recruiterProcedure,
@@ -205,6 +206,126 @@ export async function sendRecruiterInviteEmail(params: {
     >
       If you weren't expecting this invite, you can safely ignore this email.
     </p>
+  </div>
+</div>`,
+  });
+}
+
+async function sendApplicationDecisionEmail(params: {
+  to: string;
+  applicantName: string;
+  decision: "APPROVED" | "REJECTED";
+  reviewNote?: string | null;
+}) {
+  const { to, applicantName, decision, reviewNote } = params;
+  const appUrl = envSchem.NEXT_PUBLIC_APP_URL;
+
+  const isApproved = decision === "APPROVED";
+  const ctaUrl = isApproved
+    ? `${appUrl}/recruiter`
+    : `${appUrl}/settings?tab=recruiter`;
+
+  await transporter.sendMail({
+    from: envSchem.EMAIL_FROM,
+    to,
+    subject: isApproved
+      ? "You're approved as a recruiter"
+      : "An update on your recruiter application",
+    html: `<div
+  style="
+    background-color: #f4f4f5;
+    padding: 40px 20px;
+    font-family: Arial, Helvetica, sans-serif;"
+>
+  <div
+    style="
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    "
+  >
+    <div style="margin-bottom: 32px;">
+      <img
+        src="${appUrl}/mainAssets/logo.svg"
+        alt="Zach Coding Interview"
+        width="80"
+        height="80"
+        style="display: block; margin: 0 auto;"
+      />
+    </div>
+
+    <h1
+      style="
+        margin: 0 0 16px;
+        color: #111827;
+        font-size: 28px;
+        font-weight: 700;
+      "
+    >
+      ${isApproved ? "You're In!" : "An Update On Your Application"}
+    </h1>
+
+    <p
+      style="
+        margin: 0 0 24px;
+        color: #6b7280;
+        font-size: 16px;
+        line-height: 1.6;
+      "
+    >
+      ${
+        isApproved
+          ? `Congrats <strong>${applicantName}</strong> — your recruiter application has been approved. You can now author questions, invite candidates, and review their results.`
+          : `Hi <strong>${applicantName}</strong>, your recruiter application wasn't approved this time.`
+      }
+    </p>
+
+    ${
+      !isApproved && reviewNote
+        ? `<div
+        style="
+          margin: 0 0 32px;
+          padding: 16px;
+          background: #f3f4f6;
+          border-radius: 10px;
+          text-align: left;
+          color: #374151;
+          font-size: 14px;
+          line-height: 1.8;
+        "
+      >
+        <div><strong>Feedback:</strong> ${reviewNote}</div>
+      </div>`
+        : ""
+    }
+
+    ${
+      !isApproved
+        ? `<p style="margin: 0 0 24px; color: #6b7280; font-size: 14px; line-height: 1.6;">
+        You're welcome to apply again anytime from Settings.
+      </p>`
+        : ""
+    }
+
+    <a
+      href="${ctaUrl}"
+      style="
+        display: inline-block;
+        background: #111827;
+        color: white;
+        text-decoration: none;
+        padding: 14px 28px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 16px;
+      "
+    >
+      ${isApproved ? "Go to Recruiter Portal" : "Update Your Application"}
+    </a>
   </div>
 </div>`,
   });
@@ -468,6 +589,120 @@ export const recruitersRouter = createTRPCRouter({
       orderBy: { createdAt: "desc" },
     });
   }),
+  listApplications: adminProcedure
+    .input(
+      z.object({
+        page: z.number().min(1).default(PAGINATION.DEFAULT_PAGE),
+        pageSize: z
+          .number()
+          .min(PAGINATION.MIN_PAGE_SIZE)
+          .max(PAGINATION.MAX_PAGE_SIZE)
+          .default(PAGINATION.DEFAULT_PAGE_SIZE),
+        status: z.enum(ApplicationStatus).optional(),
+      }),
+    )
+    .query(async ({ input }) => {
+      const { page, pageSize, status } = input;
+
+      const where: Prisma.RecruiterApplicationWhereInput = {
+        ...(status ? { status } : {}),
+      };
+
+      const [items, totalCount] = await Promise.all([
+        prisma.recruiterApplication.findMany({
+          where,
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          orderBy: { createdAt: "desc" },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+                createdAt: true,
+              },
+            },
+          },
+        }),
+        prisma.recruiterApplication.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalCount / pageSize);
+
+      return {
+        items,
+        page,
+        pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      };
+    }),
+  decideApplication: adminProcedure
+    .input(
+      z.object({
+        applicationId: z.string(),
+        decision: z.enum(["APPROVED", "REJECTED"] as const),
+        reviewNote: z.string().trim().max(2000).optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const application = await prisma.recruiterApplication.findUnique({
+        where: { id: input.applicationId },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      });
+
+      if (!application) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Application not found.",
+        });
+      }
+
+      if (application.status !== ApplicationStatus.PENDING) {
+        throw new TRPCError({
+          code: "CONFLICT",
+          message: "This application has already been reviewed.",
+        });
+      }
+
+      const updated = await prisma.$transaction(async (tx) => {
+        const updatedApplication = await tx.recruiterApplication.update({
+          where: { id: input.applicationId },
+          data: {
+            status: input.decision,
+            reviewedById: ctx.auth.user.id,
+            reviewedAt: new Date(),
+            reviewNote: input.reviewNote || null,
+          },
+        });
+
+        if (input.decision === "APPROVED") {
+          await tx.user.update({
+            where: { id: application.userId },
+            data: { role: UserRole.RECRUITER },
+          });
+        }
+
+        return updatedApplication;
+      });
+
+      try {
+        await sendApplicationDecisionEmail({
+          to: application.user.email,
+          applicantName: application.user.name,
+          decision: input.decision,
+          reviewNote: input.reviewNote,
+        });
+      } catch (error) {
+        console.error("APPLICATION_DECISION_EMAIL_ERROR", error);
+      }
+
+      return updated;
+    }),
   createQuestion: recruiterProcedure
     .input(
       z.object({

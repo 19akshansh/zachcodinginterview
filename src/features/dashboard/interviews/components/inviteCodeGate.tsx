@@ -16,7 +16,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
-import { useRedeemInviteCode } from "@/features/dashboard/recruiters/hooks/useRecruiters";
+import { useRedeemInviteCode } from "@/features/recruiters/hooks/useRecruiters";
 import { InterviewForm } from "./interviewForm";
 
 const CODE_LENGTH = 8;

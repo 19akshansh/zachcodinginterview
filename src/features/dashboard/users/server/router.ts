@@ -1,10 +1,62 @@
 import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, protectedProcedure } from "@/trpc/init";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  adminProcedure,
+} from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
 import { UserRole, ProfileVisibility } from "@/config/enums";
+import { envSchem } from "@/config/envSchema";
+import { transporter } from "@/helpers/mail";
+
+function emailShell(params: { heading: string; bodyHtml: string }) {
+  const appUrl = envSchem.NEXT_PUBLIC_APP_URL;
+
+  return `<div
+  style="
+    background-color: #f4f4f5;
+    padding: 40px 20px;
+    font-family: Arial, Helvetica, sans-serif;"
+>
+  <div
+    style="
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 48px 32px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    "
+  >
+    <div style="margin-bottom: 32px;">
+      <img
+        src="${appUrl}/mainAssets/logo.svg"
+        alt="Zach Coding Interview"
+        width="80"
+        height="80"
+        style="display: block; margin: 0 auto;"
+      />
+    </div>
+
+    <h1
+      style="
+        margin: 0 0 16px;
+        color: #111827;
+        font-size: 28px;
+        font-weight: 700;
+      "
+    >
+      ${params.heading}
+    </h1>
+
+    ${params.bodyHtml}
+  </div>
+</div>`;
+}
 
 export const usersRouter = createTRPCRouter({
   getMe: protectedProcedure.query(async ({ ctx }) => {
@@ -139,7 +191,7 @@ export const usersRouter = createTRPCRouter({
         data: { role: input.role },
       });
     }),
-  ban: protectedProcedure
+  ban: adminProcedure
     .input(
       z.object({
         userId: z.string(),
@@ -147,12 +199,8 @@ export const usersRouter = createTRPCRouter({
         banned: z.boolean(),
       }),
     )
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.auth.user.role !== "ADMIN") {
-        throw new TRPCError({ code: "FORBIDDEN" });
-      }
-
-      return await prisma.user.update({
+    .mutation(async ({ input }) => {
+      const user = await prisma.user.update({
         where: { id: input.userId },
         data: {
           banned: input.banned,
@@ -160,6 +208,74 @@ export const usersRouter = createTRPCRouter({
           bannedAt: input.banned ? new Date() : null,
         },
       });
+
+      try {
+        if (input.banned) {
+          await transporter.sendMail({
+            from: envSchem.EMAIL_FROM,
+            to: user.email,
+            subject: "Your account has been suspended",
+            html: emailShell({
+              heading: "Your Account Has Been Suspended",
+              bodyHtml: `<p
+        style="
+          margin: 0 0 24px;
+          color: #6b7280;
+          font-size: 16px;
+          line-height: 1.6;
+        "
+      >
+        Your account on Zach Coding Interview has been suspended by an administrator.
+      </p>
+
+      <div
+        style="
+          margin: 0 0 32px;
+          padding: 16px;
+          background: #f3f4f6;
+          border-radius: 10px;
+          text-align: left;
+          color: #374151;
+          font-size: 14px;
+          line-height: 1.8;
+        "
+      >
+        <div><strong>Reason:</strong> ${
+          input.reason?.trim() ||
+          "No specific reason was provided. Please contact support if you have questions."
+        }</div>
+      </div>
+
+      <p style="margin-top: 8px; color: #9ca3af; font-size: 14px; line-height: 1.5;">
+        If you believe this was a mistake, please reach out to our support team.
+      </p>`,
+            }),
+          });
+        } else {
+          await transporter.sendMail({
+            from: envSchem.EMAIL_FROM,
+            to: user.email,
+            subject: "Your account has been reinstated",
+            html: emailShell({
+              heading: "Your Account Has Been Reinstated",
+              bodyHtml: `<p
+        style="
+          margin: 0 0 8px;
+          color: #6b7280;
+          font-size: 16px;
+          line-height: 1.6;
+        "
+      >
+        Good news — your account on Zach Coding Interview has been reinstated. You can sign in and pick up right where you left off.
+      </p>`,
+            }),
+          });
+        }
+      } catch (error) {
+        console.error("USER_BAN_EMAIL_ERROR", error);
+      }
+
+      return user;
     }),
   remove: protectedProcedure
     .input(z.object({ id: z.string() }))

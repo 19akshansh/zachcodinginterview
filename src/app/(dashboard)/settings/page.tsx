@@ -6,7 +6,7 @@ import {
   SettingsError,
 } from "@/features/dashboard/settings/components/settings";
 import { prefetchMe } from "@/features/dashboard/settings/server/prefetch";
-import { prefetchMyApplication } from "@/features/dashboard/recruiters/server/prefetch";
+import { prefetchMyApplication } from "@/features/recruiters/server/prefetch";
 
 const Page = async () => {
   await requireAuth();
