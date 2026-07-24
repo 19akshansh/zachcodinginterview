@@ -53,6 +53,7 @@ export async function uploadResumeFile(
     access: "private",
     contentType: "application/pdf",
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 
   return blob.pathname;
