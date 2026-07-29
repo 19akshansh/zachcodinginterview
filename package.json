@@ -1,6 +1,6 @@
 {
   "name": "zachcodinginterview",
-  "version": "1.2.5",
+  "version": "1.2.9",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -22,7 +22,7 @@
     "@polar-sh/better-auth": "^1.8.4",
     "@polar-sh/sdk": "^0.47.1",
     "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/client": "^7.9.1",
     "@radix-ui/react-label": "^2.1.11",
     "@react-pdf/renderer": "^4.5.1",
     "@shadcn/react": "^0.2.0",
@@ -71,7 +71,7 @@
     "@types/react-dom": "^19",
     "@types/trusted-types": "^2.0.7",
     "babel-plugin-react-compiler": "1.0.0",
-    "prisma": "^7.8.0",
+    "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

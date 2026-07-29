@@ -119,7 +119,7 @@ export const ReportsEmpty = () => {
   return (
     <EmptyView
       onNew={() => router.push("/interviews/new")}
-      entity="Report"
+      entity="Interview"
       msg="Complete an interview to see your AI-generated report here."
     />
   );

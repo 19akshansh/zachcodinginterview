@@ -76,6 +76,30 @@ export async function generateReportForInterview(
     },
   });
 
+  if (interview.assignedByRecruiterId) {
+    const recruiterSettings = await prisma.settings.findUnique({
+      where: { userId: interview.assignedByRecruiterId },
+      select: { webhookUrl: true },
+    });
+
+    if (recruiterSettings?.webhookUrl) {
+      void fetch(recruiterSettings.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "interview.completed",
+          interviewId,
+          candidateId: interview.candidateId,
+          overallScore: report.overallScore,
+          verdict: report.verdict,
+          completedAt: new Date().toISOString(),
+        }),
+      }).catch((error) => {
+        console.error("INTERVIEW_WEBHOOK_FAILED", interviewId, error);
+      });
+    }
+  }
+
   await prisma.interview.updateMany({
     where: {
       id: interviewId,

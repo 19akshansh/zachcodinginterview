@@ -2,6 +2,8 @@
 
 import {
   AlertTriangleIcon,
+  CheckIcon,
+  CopyIcon,
   DownloadIcon,
   FileTextIcon,
   LightbulbIcon,
@@ -10,7 +12,7 @@ import {
   TrophyIcon,
   UserIcon,
 } from "lucide-react";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { RelativeTime } from "@/components/layout/shared/relativeTime";
 import { Badge } from "@/components/ui/badge";
@@ -21,7 +23,10 @@ import {
   ProgressIndicator,
   ProgressTrack,
 } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   INTERVIEW_TYPE_LABELS,
   RECRUITER_DECISION_LABELS,
@@ -29,7 +34,11 @@ import {
   Verdict,
 } from "@/config/enums";
 import { useBreadcrumbLabel } from "@/hooks/useBreadcrumbsLabel";
-import { useExportReport, useSuspenseReport } from "../hooks/useReports";
+import {
+  useExportReport,
+  useSetReportShared,
+  useSuspenseReport,
+} from "../hooks/useReports";
 
 type ReportData = ReturnType<typeof useSuspenseReport>["data"];
 
@@ -75,6 +84,9 @@ const ScoreBar = ({ label, score }: { label: string; score: number }) => {
 const ReportDetailsData = ({ reportId }: { reportId: string }) => {
   const { data: report } = useSuspenseReport(reportId);
   const exportReport = useExportReport();
+  const setShared = useSetReportShared();
+  const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
 
   const interview = report.interview;
   const firstQuestion = interview?.questions?.[0]?.question;
@@ -101,6 +113,20 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
   const topicScores =
     (report.topicScores as Record<string, number> | null) ?? {};
   const topicEntries = Object.entries(topicScores).sort((a, b) => a[1] - b[1]);
+  useEffect(() => {
+    setShareUrl(
+      report.isShared && report.shareId
+        ? `${window.location.origin}/r/${report.shareId}`
+        : "",
+    );
+  }, [report.isShared, report.shareId]);
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+    await navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div className="p-4 md:px-10 md:py-6 h-full flex flex-col gap-y-6 max-w-screen-xl mx-auto w-full">
@@ -185,6 +211,45 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
               Export PDF
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Public sharing</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <Label htmlFor="report-public-sharing">Enable public link</Label>
+              <p className="text-xs text-muted-foreground">
+                Anyone with the link can view this read-only report without signing in.
+              </p>
+            </div>
+            <Switch
+              id="report-public-sharing"
+              checked={report.isShared}
+              disabled={setShared.isPending}
+              onCheckedChange={(isShared) =>
+                setShared.mutate({ reportId: report.id, isShared })
+              }
+            />
+          </div>
+
+          {report.isShared && report.shareId && (
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Input
+                aria-label="Public report link"
+                value={shareUrl}
+                readOnly
+                className="font-mono text-xs"
+              />
+              <Button variant="outline" onClick={copyShareUrl} disabled={!shareUrl}>
+                {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
+                {copied ? "Copied" : "Copy link"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

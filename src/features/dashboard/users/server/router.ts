@@ -78,12 +78,14 @@ export const usersRouter = createTRPCRouter({
       z.object({
         emailNotifications: z.boolean().optional(),
         profileVisibility: z.enum(ProfileVisibility).optional(),
+        webhookUrl: z.union([z.url(), z.literal("")]).optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
       if (
         input.emailNotifications === undefined &&
-        input.profileVisibility === undefined
+        input.profileVisibility === undefined &&
+        input.webhookUrl === undefined
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -93,10 +95,14 @@ export const usersRouter = createTRPCRouter({
 
       return await prisma.settings.upsert({
         where: { userId: ctx.auth.user.id },
-        update: input,
+        update: {
+          ...input,
+          webhookUrl: input.webhookUrl === "" ? null : input.webhookUrl,
+        },
         create: {
           userId: ctx.auth.user.id,
           ...input,
+          webhookUrl: input.webhookUrl === "" ? null : input.webhookUrl,
         },
       });
     }),

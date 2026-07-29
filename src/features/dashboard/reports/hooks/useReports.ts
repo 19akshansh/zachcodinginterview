@@ -76,3 +76,26 @@ export const useExportReport = () => {
     }),
   );
 };
+
+export const useSetReportShared = () => {
+  const trpc = useTRPC();
+  const queryClient = useQueryClient();
+
+  return useMutation(
+    trpc.reports.setShared.mutationOptions({
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: trpc.reports.getOne.queryKey(),
+        });
+      },
+      onError: (error) => {
+        toast.error(`Failed to update sharing: ${error.message}`);
+      },
+    }),
+  );
+};
+
+export const usePublicReport = (shareId: string) => {
+  const trpc = useTRPC();
+  return useQuery(trpc.reports.getByShareId.queryOptions({ shareId }));
+};

@@ -21,15 +21,6 @@ export function useEntitySearch<
   const [localSearch, setLocalSearch] = useState(params.search);
 
   useEffect(() => {
-    if (localSearch === "" && params.search !== "") {
-      setParams({
-        ...params,
-        search: "",
-        page: PAGINATION.DEFAULT_PAGE,
-      });
-      return;
-    }
-
     const timer = setTimeout(() => {
       if (localSearch !== params.search) {
         setParams({
@@ -38,10 +29,10 @@ export function useEntitySearch<
           page: PAGINATION.DEFAULT_PAGE,
         });
       }
-    }, debounceMs);
+    }, localSearch === "" ? 0 : debounceMs);
 
     return () => clearTimeout(timer);
-  }, [localSearch, params, setParams, debounceMs]);
+  }, [localSearch, params.search, params.page, setParams, debounceMs]);
 
   useEffect(() => {
     setLocalSearch(params.search);
