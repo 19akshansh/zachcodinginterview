@@ -1,6 +1,11 @@
 import prisma from "@/lib/db/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { createTRPCRouter, protectedProcedure, aiProcedure } from "@/trpc/init";
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  unprotectedProcedure,
+  aiProcedure,
+} from "@/trpc/init";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { PAGINATION } from "@/config/constants";
@@ -98,6 +103,81 @@ export const reportsRouter = createTRPCRouter({
         });
       }
 
+      return report;
+    }),
+  setShared: protectedProcedure
+    .input(z.object({ reportId: z.string(), isShared: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      const report = await prisma.report.findUnique({
+        where: { id: input.reportId },
+        select: {
+          shareId: true,
+          interview: {
+            select: { candidateId: true, assignedByRecruiterId: true },
+          },
+        },
+      });
+
+      if (!report) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const isOwner = report.interview.candidateId === ctx.auth.user.id;
+      const isAssignedRecruiter =
+        report.interview.assignedByRecruiterId === ctx.auth.user.id;
+      const isAdmin = ctx.auth.user.role === "ADMIN";
+
+      if (!isOwner && !isAssignedRecruiter && !isAdmin) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You do not have access to share this report.",
+        });
+      }
+
+      const shareId = report.shareId ?? crypto.randomUUID();
+      const updated = await prisma.report.update({
+        where: { id: input.reportId },
+        data: { isShared: input.isShared, shareId },
+        select: { shareId: true, isShared: true },
+      });
+
+      return updated;
+    }),
+  getByShareId: unprotectedProcedure
+    .input(z.object({ shareId: z.string().min(1) }))
+    .query(async ({ input }) => {
+      const report = await prisma.report.findFirst({
+        where: { shareId: input.shareId, isShared: true },
+        select: {
+          overallScore: true,
+          communication: true,
+          problemSolving: true,
+          codeQuality: true,
+          optimization: true,
+          cleanliness: true,
+          confidence: true,
+          timeComplexity: true,
+          verdict: true,
+          suggestions: true,
+          topicScores: true,
+          createdAt: true,
+          interview: {
+            select: {
+              title: true,
+              type: true,
+              difficulty: true,
+              seniorityLevel: true,
+              candidate: { select: { name: true, image: true } },
+              questions: {
+                orderBy: { order: "asc" },
+                select: {
+                  question: { select: { title: true, type: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!report) throw new TRPCError({ code: "NOT_FOUND" });
       return report;
     }),
   getOne: protectedProcedure

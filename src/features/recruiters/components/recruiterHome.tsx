@@ -1,4 +1,9 @@
-import { FileTextIcon, SendIcon, UsersIcon } from "lucide-react";
+import {
+  BarChart3Icon,
+  FileTextIcon,
+  SendIcon,
+  UsersIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -69,6 +74,24 @@ export const RecruiterHome = () => {
             </ItemContent>
             <ItemActions>
               <Button size="sm" render={<Link href="/recruiter/review" />}>
+                Open
+              </Button>
+            </ItemActions>
+          </Item>
+
+          <Item variant="outline">
+            <ItemMedia variant="icon" className="text-primary">
+              <BarChart3Icon />
+            </ItemMedia>
+            <ItemContent>
+              <ItemTitle>Analytics</ItemTitle>
+              <ItemDescription>
+                Compare pass rates and average scores across candidates, per
+                question.
+              </ItemDescription>
+            </ItemContent>
+            <ItemActions>
+              <Button size="sm" render={<Link href="/recruiter/analytics" />}>
                 Open
               </Button>
             </ItemActions>

@@ -122,7 +122,7 @@ const WRITTEN_RESPONSE_GUIDANCE: Partial<Record<InterviewType, string>> = {
   [InterviewType.RESUME_BASED]:
     "Look for concrete specifics, ownership of the work described, and clarity in how they explain their past experience.",
   [InterviewType.DOMAIN_SPECIFIC]:
-    "Look for depth and accuracy of domain knowledge, and clarity of explanation.",
+    "Look for technically accurate, domain-specific reasoning: correct use of the relevant concepts and terminology, explanation of underlying mechanisms and trade-offs, and the ability to connect principles to the concrete question. Distinguish genuine depth from confident but surface-level buzzwords or unsupported claims, and make suggestions specific to missing or incorrect domain concepts rather than generic requests for more detail.",
 };
 
 export async function generateInterviewReport(

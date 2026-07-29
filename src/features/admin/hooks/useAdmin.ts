@@ -129,6 +129,7 @@ export const useSuspenseAdminPendingQuestions = () => {
       page: params.page,
       pageSize: params.pageSize,
       status: params.status ?? undefined,
+      search: params.search,
     }),
   );
 };

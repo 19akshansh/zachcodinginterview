@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -32,7 +33,7 @@ import {
   useApplyToBeRecruiter,
   useMyApplication,
 } from "@/features/recruiters/hooks/useRecruiters";
-import { useSuspenseMe } from "../hooks/useSettings";
+import { useSuspenseMe, useUpdateSettings } from "../hooks/useSettings";
 
 const ApplyForm = ({
   rejectedNote,
@@ -105,6 +106,8 @@ const ApplyForm = ({
 export const RecruiterTab = () => {
   const { data: me } = useSuspenseMe();
   const { data: application } = useMyApplication();
+  const updateSettings = useUpdateSettings();
+  const [webhookUrl, setWebhookUrl] = useState(me.settings?.webhookUrl ?? "");
 
   const hasRecruiterAccess =
     me.role === UserRole.RECRUITER || me.role === UserRole.ADMIN;
@@ -142,6 +145,48 @@ export const RecruiterTab = () => {
               </p>
             </div>
           )}
+
+          <div className="mt-4 space-y-3 rounded-2xl border border-border px-4 py-4">
+            <div className="space-y-1">
+              <Label htmlFor="recruiter-webhook-url">
+                Interview completion webhook
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                We will POST completed recruiter-assigned interview results to
+                this URL.
+              </p>
+            </div>
+            <Input
+              id="recruiter-webhook-url"
+              type="url"
+              inputMode="url"
+              placeholder="https://example.com/webhooks/interviews"
+              value={webhookUrl}
+              disabled={updateSettings.isPending}
+              onChange={(event) => setWebhookUrl(event.target.value)}
+            />
+            <div className="flex justify-end">
+              <Button
+                type="button"
+                size="sm"
+                disabled={updateSettings.isPending}
+                onClick={() =>
+                  updateSettings.mutate(
+                    { webhookUrl: webhookUrl.trim() },
+                    {
+                      onSuccess: (settings) =>
+                        setWebhookUrl(settings.webhookUrl ?? ""),
+                    },
+                  )
+                }
+              >
+                {updateSettings.isPending && (
+                  <Loader2Icon className="size-4 animate-spin" />
+                )}
+                Save webhook
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );

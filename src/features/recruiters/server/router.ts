@@ -16,6 +16,7 @@ import {
   QuestionApprovalStatus,
   RecruiterDecision,
   SeniorityLevel,
+  SubmissionResult,
   UserRole,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
@@ -755,7 +756,8 @@ export const recruitersRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { page, pageSize, search } = input;
+      const { page, pageSize } = input;
+      const search = input.search.trim();
 
       const where: Prisma.QuestionWhereInput = {
         createdByUserId: ctx.auth.user.id,
@@ -818,6 +820,100 @@ export const recruitersRouter = createTRPCRouter({
       }
 
       return await prisma.question.delete({ where: { id: input.id } });
+    }),
+  analytics: recruiterProcedure
+    .input(
+      z.object({
+        questionId: z.string().optional(),
+        page: z.number().min(1).default(PAGINATION.DEFAULT_PAGE),
+        pageSize: z
+          .number()
+          .min(PAGINATION.MIN_PAGE_SIZE)
+          .max(PAGINATION.MAX_PAGE_SIZE)
+          .default(PAGINATION.DEFAULT_PAGE_SIZE),
+        search: z.string().default(""),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const isAdmin = ctx.auth.user.role === "ADMIN";
+      const search = input.search.trim();
+      const recruiterFilter: Prisma.InterviewWhereInput = isAdmin
+        ? {}
+        : { assignedByRecruiterId: ctx.auth.user.id };
+
+      const where: Prisma.QuestionWhereInput = {
+        ...(input.questionId ? { id: input.questionId } : {}),
+        ...(isAdmin ? {} : { createdByUserId: ctx.auth.user.id }),
+        ...(search
+          ? {
+              OR: [
+                { title: { contains: search, mode: "insensitive" } },
+                { prompt: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      };
+
+      const [questions, totalCount] = await Promise.all([
+        prisma.question.findMany({
+          where,
+          skip: (input.page - 1) * input.pageSize,
+          take: input.pageSize,
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            difficulty: true,
+            interviewQuestions: {
+              where: { interview: recruiterFilter },
+              select: {
+                result: true,
+                interview: {
+                  select: { report: { select: { overallScore: true } } },
+                },
+              },
+            },
+          },
+        }),
+        prisma.question.count({ where }),
+      ]);
+
+      const items = questions.map((q) => {
+        const attempts = q.interviewQuestions;
+        const scored = attempts
+          .map((a) => a.interview.report?.overallScore)
+          .filter((score): score is number => typeof score === "number");
+        const passed = attempts.filter(
+          (a) => a.result === SubmissionResult.PASSED,
+        ).length;
+
+        return {
+          questionId: q.id,
+          title: q.title,
+          type: q.type,
+          difficulty: q.difficulty,
+          attemptCount: attempts.length,
+          passRate: attempts.length ? passed / attempts.length : null,
+          averageScore: scored.length
+            ? Math.round(
+                scored.reduce((sum, score) => sum + score, 0) / scored.length,
+              )
+            : null,
+        };
+      });
+
+      const totalPages = Math.ceil(totalCount / input.pageSize);
+
+      return {
+        items,
+        page: input.page,
+        pageSize: input.pageSize,
+        totalCount,
+        totalPages,
+        hasNextPage: input.page < totalPages,
+        hasPrevPage: input.page > 1,
+      };
     }),
   redeemInviteCode: protectedProcedure
     .input(z.object({ code: z.string().trim().min(1) }))

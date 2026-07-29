@@ -160,6 +160,19 @@ export const useSuspenseReviewQueue = () => {
   );
 };
 
+export const useSuspenseAnalytics = () => {
+  const trpc = useTRPC();
+  const [params] = useRecruitersParams();
+
+  return useSuspenseQuery(
+    trpc.recruiters.analytics.queryOptions({
+      page: params.page,
+      pageSize: params.pageSize,
+      search: params.search,
+    }),
+  );
+};
+
 export const useDecideCandidate = () => {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
