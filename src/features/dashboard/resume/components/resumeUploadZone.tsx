@@ -57,7 +57,9 @@ export const ResumeUploadZone = ({
       className={cn(
         "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed text-center transition-colors",
         variant === "empty" ? "p-10" : "p-6",
-        isDragging ? "border-primary bg-primary/5" : "border-border bg-background",
+        isDragging
+          ? "border-primary bg-primary/5"
+          : "border-border bg-background",
         uploadResume.isPending && "pointer-events-none opacity-60",
       )}
     >

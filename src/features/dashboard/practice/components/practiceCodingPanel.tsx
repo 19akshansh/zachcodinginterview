@@ -418,7 +418,7 @@ export const PracticeCodingPanel = ({
         </Tabs>
       </div>
 
-     <div className="hidden md:flex flex-1 min-h-0">
+      <div className="hidden md:flex flex-1 min-h-0">
         <ResizablePanelGroup orientation="horizontal" className="flex-1">
           <ResizablePanel defaultSize={38} minSize={25}>
             <div className="h-full overflow-y-auto pr-4 space-y-4">

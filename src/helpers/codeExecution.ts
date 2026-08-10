@@ -3,22 +3,83 @@ import {
   ProgrammingLanguage,
 } from "@/config/enums";
 import { envSchem } from "@/config/envSchema";
-import { EntryPointResolutionError, wrapWithHarness } from "@/helpers/testHarness";
+import {
+  EntryPointResolutionError,
+  wrapWithHarness,
+} from "@/helpers/testHarness";
 
-const CODESERVER_LANGUAGE_IDS: Partial<Record<ProgrammingLanguage, string>> =
-  {
-    [ProgrammingLanguage.JAVASCRIPT]: "javascript",
-    [ProgrammingLanguage.PYTHON]: "python",
-  };
+const CODESERVER_LANGUAGE_IDS: Partial<Record<ProgrammingLanguage, string>> = {
+  [ProgrammingLanguage.JAVASCRIPT]: "javascript",
+  [ProgrammingLanguage.PYTHON]: "python",
+};
 
 export const EXECUTABLE_LANGUAGES = Object.keys(
   CODESERVER_LANGUAGE_IDS,
 ) as ProgrammingLanguage[];
 
-export function isExecutableLanguage(
-  language: ProgrammingLanguage,
-): boolean {
+export function isExecutableLanguage(language: ProgrammingLanguage): boolean {
   return language in CODESERVER_LANGUAGE_IDS;
+}
+
+function tryParseLiteral(
+  raw: string,
+): { ok: true; value: unknown } | { ok: false } {
+  const trimmed = raw.trim();
+  try {
+    return { ok: true, value: JSON.parse(trimmed) };
+  } catch {}
+  const normalized = trimmed
+    .replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, (_, s: string) => JSON.stringify(s))
+    .replace(/\bTrue\b/g, "true")
+    .replace(/\bFalse\b/g, "false")
+    .replace(/\bNone\b/g, "null")
+    .replace(/,\s*([\]}])/g, "$1");
+  try {
+    return { ok: true, value: JSON.parse(normalized) };
+  } catch {}
+  return { ok: false };
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((v, i) => deepEqual(v, b[i]));
+  }
+  if (
+    a !== null &&
+    b !== null &&
+    typeof a === "object" &&
+    typeof b === "object" &&
+    !Array.isArray(a) &&
+    !Array.isArray(b)
+  ) {
+    const aKeys = Object.keys(a as Record<string, unknown>);
+    const bKeys = Object.keys(b as Record<string, unknown>);
+    return (
+      aKeys.length === bKeys.length &&
+      aKeys.every((k) =>
+        deepEqual(
+          (a as Record<string, unknown>)[k],
+          (b as Record<string, unknown>)[k],
+        ),
+      )
+    );
+  }
+  return false;
+}
+
+function outputsMatch(actual: string, expected: string): boolean {
+  if (actual === expected) return true;
+  const a = tryParseLiteral(actual);
+  const b = tryParseLiteral(expected);
+  if (a.ok && b.ok) return deepEqual(a.value, b.value);
+
+  const collapseStructuralWhitespace = (s: string) =>
+    s.trim().replace(/\s*([,:[\]{}])\s*/g, "$1");
+  return (
+    collapseStructuralWhitespace(actual) ===
+    collapseStructuralWhitespace(expected)
+  );
 }
 
 interface CodeServerResponse {
@@ -114,7 +175,11 @@ export async function runAgainstTestCases(params: {
 
     let wrappedCode: string;
     try {
-      wrappedCode = wrapWithHarness(params.language, params.code, testCase.input);
+      wrappedCode = wrapWithHarness(
+        params.language,
+        params.code,
+        testCase.input,
+      );
     } catch (err: unknown) {
       const message =
         err instanceof EntryPointResolutionError
@@ -154,7 +219,7 @@ export async function runAgainstTestCases(params: {
     } else if (raw.error || raw.exit_code !== 0) {
       status = "Runtime Error";
       passed = false;
-    } else if (actualOutput === expectedOutput) {
+    } else if (outputsMatch(actualOutput, expectedOutput)) {
       status = "Accepted";
       passed = true;
     } else {

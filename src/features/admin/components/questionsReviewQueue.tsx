@@ -1,11 +1,7 @@
 "use client";
 
 import React from "react";
-import {
-  Loader2Icon,
-  PencilIcon,
-  TrashIcon,
-} from "lucide-react";
+import { Loader2Icon, PencilIcon, TrashIcon } from "lucide-react";
 import {
   EmptyView,
   EntityContainer,

@@ -1,10 +1,7 @@
 import { ErrorBoundary } from "react-error-boundary";
 import { requireAdmin } from "@/lib/auth/utils";
 import { HydrateClient } from "@/trpc/server";
-import {
-  UsersError,
-  UsersTable,
-} from "@/features/admin/components/usersTable";
+import { UsersError, UsersTable } from "@/features/admin/components/usersTable";
 import { adminUsersParamsLoader } from "@/features/admin/server/paramsLoader";
 import { prefetchAdminUsers } from "@/features/admin/server/prefetch";
 
