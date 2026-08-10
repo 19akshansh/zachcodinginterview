@@ -111,7 +111,7 @@ export const useSubmitTextAnswer = () => {
         });
         queryClient.invalidateQueries({
           queryKey: getPracticeListBaseKey(trpc),
-      });
+        });
       },
       onError: (error) => toast.error(`Grading failed: ${error.message}`),
     }),

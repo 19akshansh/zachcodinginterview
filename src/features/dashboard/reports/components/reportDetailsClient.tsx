@@ -223,7 +223,8 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
             <div className="space-y-1">
               <Label htmlFor="report-public-sharing">Enable public link</Label>
               <p className="text-xs text-muted-foreground">
-                Anyone with the link can view this read-only report without signing in.
+                Anyone with the link can view this read-only report without
+                signing in.
               </p>
             </div>
             <Switch
@@ -244,8 +245,16 @@ const ReportDetailsData = ({ reportId }: { reportId: string }) => {
                 readOnly
                 className="font-mono text-xs"
               />
-              <Button variant="outline" onClick={copyShareUrl} disabled={!shareUrl}>
-                {copied ? <CheckIcon className="size-4" /> : <CopyIcon className="size-4" />}
+              <Button
+                variant="outline"
+                onClick={copyShareUrl}
+                disabled={!shareUrl}
+              >
+                {copied ? (
+                  <CheckIcon className="size-4" />
+                ) : (
+                  <CopyIcon className="size-4" />
+                )}
                 {copied ? "Copied" : "Copy link"}
               </Button>
             </div>

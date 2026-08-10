@@ -21,15 +21,18 @@ export function useEntitySearch<
   const [localSearch, setLocalSearch] = useState(params.search);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localSearch !== params.search) {
-        setParams({
-          ...params,
-          search: localSearch,
-          page: PAGINATION.DEFAULT_PAGE,
-        });
-      }
-    }, localSearch === "" ? 0 : debounceMs);
+    const timer = setTimeout(
+      () => {
+        if (localSearch !== params.search) {
+          setParams({
+            ...params,
+            search: localSearch,
+            page: PAGINATION.DEFAULT_PAGE,
+          });
+        }
+      },
+      localSearch === "" ? 0 : debounceMs,
+    );
 
     return () => clearTimeout(timer);
   }, [localSearch, params.search, params.page, setParams, debounceMs]);

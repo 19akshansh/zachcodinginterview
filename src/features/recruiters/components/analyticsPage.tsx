@@ -80,9 +80,7 @@ const AnalyticsTable = ({
                     {DIFFICULTY_LABELS[row.difficulty] ?? row.difficulty}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right">
-                  {row.attemptCount}
-                </TableCell>
+                <TableCell className="text-right">{row.attemptCount}</TableCell>
                 <TableCell className="text-right">
                   {formatPercent(row.passRate)}
                 </TableCell>

@@ -13,7 +13,7 @@ import { dehydrate, HydrationBoundary } from "@tanstack/react-query";
 export const getQueryClient = cache(makeQueryClient);
 
 const getContext = cache(async () => {
-  const heads = new Headers(await headers()); 
+  const heads = new Headers(await headers());
   heads.set("x-trpc-source", "rsc");
   return createTRPCContext({
     headers: heads,

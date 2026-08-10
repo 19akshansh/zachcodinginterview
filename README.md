@@ -49,43 +49,51 @@ This project is hand-built, not vibe-coded - the schema, the route architecture,
 ## ✨ Features
 
 **Interview Engine**
+
 - 5 interview types: Coding, Behavioral, System Design, Resume-Based, Domain-Specific
 - Seniority-aware (Entry → Principal) and company-tier-aware (Startup / Mid-Market / FAANG) question generation
 - Live, timed sessions with a per-interview time limit
 - AI-generated final report with strengths, weaknesses, suggestions, and a hire/no-hire style verdict
 
 **Code Execution**
+
 - Real test cases run against a sandboxed execution service (JavaScript & Python)
 - Pass / fail / runtime error / time-limit-exceeded verdicts per test case
 - Language-aware test harness that wraps candidate submissions before execution
 
 **Practice Mode**
+
 - Standalone LeetCode-style practice bank, separate from full mock interviews
 - Public, hidden, and custom test case visibility per question
 - Built-in hints per question
 
 **Resume Tools**
+
 - Upload a resume → parsed automatically → AI-generated resume feedback (ATS score, strengths, weaknesses, suggestions)
 - Resume content can feed directly into resume-based interview questions
 - Resumes are scanned through VirusTotal before they're ever trusted
 
 **Recruiter Workspace**
+
 - Apply for recruiter access → admin review → approve/reject
 - Submit original interview questions for approval
 - Send direct interview invites to any candidate by email
 - Review candidate reports and make hire decisions
 
 **Admin Dashboard**
+
 - Manage users and roles
 - Approve or reject recruiter applications
 - Approve or reject community-submitted questions
 
 **Auth & Billing**
+
 - Email/password + GitHub OAuth + Google OAuth via Better Auth
 - Forgot / reset password flows
 - Free and Pro tiers via Polar, with in-app upgrade prompts and subscription-aware gating
 
 **Reports & Storage**
+
 - Interview reports and resume feedback rendered to PDF (`@react-pdf/renderer`)
 - Files stored in Vercel Blob
 - Rate limiting on sensitive endpoints
@@ -237,21 +245,21 @@ erDiagram
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4 |
-| Components | shadcn/ui, Radix UI, Monaco Editor |
-| API | tRPC v11, TanStack Query |
-| Database | PostgreSQL, Prisma ORM |
-| Auth | Better Auth, GitHub OAuth, Google OAuth |
-| AI | Google Gemini via Vercel AI SDK (`@ai-sdk/google`, `ai`) |
-| Code Execution | Custom sandbox - [zachcodinginterview_codeserver](https://github.com/19akshansh/zachcodinginterview_codeserver) |
-| File Storage | Vercel Blob |
-| Malware Scanning | VirusTotal API |
-| Billing | Polar |
-| Email | Nodemailer |
-| PDF Generation | `@react-pdf/renderer` |
-| Linting | Biome |
+| Layer            | Technology                                                                                                      |
+| ---------------- | --------------------------------------------------------------------------------------------------------------- |
+| Frontend         | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4                                                  |
+| Components       | shadcn/ui, Radix UI, Monaco Editor                                                                              |
+| API              | tRPC v11, TanStack Query                                                                                        |
+| Database         | PostgreSQL, Prisma ORM                                                                                          |
+| Auth             | Better Auth, GitHub OAuth, Google OAuth                                                                         |
+| AI               | Google Gemini via Vercel AI SDK (`@ai-sdk/google`, `ai`)                                                        |
+| Code Execution   | Custom sandbox - [zachcodinginterview_codeserver](https://github.com/19akshansh/zachcodinginterview_codeserver) |
+| File Storage     | Vercel Blob                                                                                                     |
+| Malware Scanning | VirusTotal API                                                                                                  |
+| Billing          | Polar                                                                                                           |
+| Email            | Nodemailer                                                                                                      |
+| PDF Generation   | `@react-pdf/renderer`                                                                                           |
+| Linting          | Biome                                                                                                           |
 
 ---
 
@@ -309,22 +317,22 @@ npm run db:reset      # reset the database
 
 All variables are documented in [`example.env`](./example.env). Copy it to `.env` and fill in your own values.
 
-| Variable | Description | Required |
-|---|---|---|
-| `NEXT_PUBLIC_APP_URL` | Public URL of your deployment | Yes |
-| `DATABASE_URL` | PostgreSQL connection string | Yes |
-| `BETTER_AUTH_SECRET` | Secret key for Better Auth sessions | Yes |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks | Yes |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth | No (for GitHub sign-in) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth | No (for Google sign-in) |
-| `EMAIL_USER` / `EMAIL_PASS` / `EMAIL_FROM` | Nodemailer transactional email (verification, invites, etc.) | Yes |
-| `POLAR_ACCESS_TOKEN` / `POLAR_SERVER` | Polar API access token and environment (`sandbox` or `production`) | Yes |
-| `NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID` / `POLAR_PRO_PRODUCT_ID` | Polar Pro product ID | Yes |
-| `POLAR_SUCCESS_URL` | Redirect URL after a successful checkout | Yes |
+| Variable                                                             | Description                                                                                                     | Required                 |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `NEXT_PUBLIC_APP_URL`                                                | Public URL of your deployment                                                                                   | Yes                      |
+| `DATABASE_URL`                                                       | PostgreSQL connection string                                                                                    | Yes                      |
+| `BETTER_AUTH_SECRET`                                                 | Secret key for Better Auth sessions                                                                             | Yes                      |
+| `BETTER_AUTH_URL`                                                    | Base URL for auth callbacks                                                                                     | Yes                      |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`                          | GitHub OAuth                                                                                                    | No (for GitHub sign-in)  |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`                          | Google OAuth                                                                                                    | No (for Google sign-in)  |
+| `EMAIL_USER` / `EMAIL_PASS` / `EMAIL_FROM`                           | Nodemailer transactional email (verification, invites, etc.)                                                    | Yes                      |
+| `POLAR_ACCESS_TOKEN` / `POLAR_SERVER`                                | Polar API access token and environment (`sandbox` or `production`)                                              | Yes                      |
+| `NEXT_PUBLIC_POLAR_PRO_PRODUCT_ID` / `POLAR_PRO_PRODUCT_ID`          | Polar Pro product ID                                                                                            | Yes                      |
+| `POLAR_SUCCESS_URL`                                                  | Redirect URL after a successful checkout                                                                        | Yes                      |
 | `CODESERVER_API_URL` / `CODESERVER_APIKEY` / `CODESERVER_TIMEOUT_MS` | The code execution sandbox - see [shout-out](#-code-execution--powered-by-zachcodinginterview_codeserver) below | Yes (for code execution) |
-| `BLOB_READ_WRITE_TOKEN` | Vercel Blob storage for resumes & report PDFs | Yes |
-| `GEMINI_API_KEY` | Fallback AI key - as of v0.9.6 users can bring their own key in-app | No |
-| `VIRUSTOTAL_API_KEY` / `VIRUSTOTAL_BASE` | Malware scanning for uploaded resumes | Yes |
+| `BLOB_READ_WRITE_TOKEN`                                              | Vercel Blob storage for resumes & report PDFs                                                                   | Yes                      |
+| `GEMINI_API_KEY`                                                     | Fallback AI key - as of v0.9.6 users can bring their own key in-app                                             | No                       |
+| `VIRUSTOTAL_API_KEY` / `VIRUSTOTAL_BASE`                             | Malware scanning for uploaded resumes                                                                           | Yes                      |
 
 ---
 
